@@ -791,6 +791,8 @@ class UNetModel(nn.Module):
                 ctrl = control['output'].pop()
                 if ctrl is not None:
                     hsp += ctrl
+            if h.shape[-2:] != hs[-1].shape[-2:]:
+                h = F.interpolate(h, hs[-1].shape[-2:], mode="nearest")
             h = th.cat([h, hsp], dim=1)
             del hsp
             h = module(h, emb, context)
@@ -799,3 +801,14 @@ class UNetModel(nn.Module):
             return self.id_predictor(h)
         else:
             return self.out(h)
+
+# from https://github.com/CompVis/stable-diffusion/issues/60#issuecomment-1240294667
+#    for module in self.output_blocks:
+#         h = th.cat([h, hs.pop()], dim=1)
+#         h = module(h, emb, context)
+
+#     for module in self.output_blocks:
+#         if h.shape[-2:] != hs[-1].shape[-2:]:
+#             h = F.interpolate(h, hs[-1].shape[-2:], mode="nearest")
+#         h = th.cat([h, hs.pop()], dim=1)
+#         h = module(h, emb, context)

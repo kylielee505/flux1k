@@ -791,8 +791,8 @@ class UNetModel(nn.Module):
                 ctrl = control['output'].pop()
                 if ctrl is not None:
                     hsp += ctrl
-            if h.shape[-2:] != hs[-1].shape[-2:]:
-                h = F.interpolate(h, hs[-1].shape[-2:], mode="nearest")
+            if h.shape[-2:] != hsp[-1].shape[-2:]:
+                h = F.interpolate(h, hsp[-1].shape[-2:], mode="nearest")
             h = th.cat([h, hsp], dim=1)
             del hsp
             h = module(h, emb, context)

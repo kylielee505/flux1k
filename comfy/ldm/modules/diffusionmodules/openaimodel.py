@@ -251,6 +251,23 @@ class Timestep(nn.Module):
     def forward(self, t):
         return timestep_embedding(t, self.dim)
 
+def Fourier_filter(x, threshold, scale):
+    # FFT
+    x_freq = th.fft.fftn(x, dim=(-2, -1))
+    x_freq = th.fft.fftshift(x_freq, dim=(-2, -1))
+    
+    B, C, H, W = x_freq.shape
+    mask = th.ones((B, C, H, W)).cuda() 
+
+    crow, ccol = H // 2, W //2
+    mask[..., crow - threshold:crow + threshold, ccol - threshold:ccol + threshold] = scale
+    x_freq = x_freq * mask
+
+    # IFFT
+    x_freq = th.fft.ifftshift(x_freq, dim=(-2, -1))
+    x_filtered = th.fft.ifftn(x_freq, dim=(-2, -1)).real
+    
+    return x_filtered
 
 class UNetModel(nn.Module):
     """
@@ -639,6 +656,17 @@ class UNetModel(nn.Module):
         for id, module in enumerate(self.output_blocks):
             transformer_options["block"] = ("output", id)
             hsp = hs.pop()
+            
+            # --------------- FreeU code -----------------------------
+            # Only operate on the first two stages
+            if h.shape[1] == 1280:
+                h[:,:640] = h[:,:640] * 1.2
+                hsp = Fourier_filter(hsp, threshold=1, scale=0.9)
+            if h.shape[1] == 640:
+                h[:,:320] = h[:,:320] * 1.4
+                hsp = Fourier_filter(hsp, threshold=1, scale=0.2)
+            # ---------------------------------------------------------
+
             if control is not None and 'output' in control and len(control['output']) > 0:
                 ctrl = control['output'].pop()
                 if ctrl is not None:

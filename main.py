@@ -1,6 +1,3 @@
-import comfy.options
-comfy.options.enable_args_parsing()
-
 import os
 import importlib.util
 import folder_paths
@@ -75,17 +72,6 @@ from server import BinaryEventTypes
 from nodes import init_custom_nodes
 import comfy.model_management
 
-def cuda_malloc_warning():
-    device = comfy.model_management.get_torch_device()
-    device_name = comfy.model_management.get_torch_device_name(device)
-    cuda_malloc_warning = False
-    if "cudaMallocAsync" in device_name:
-        for b in cuda_malloc.blacklist:
-            if b in device_name:
-                cuda_malloc_warning = True
-        if cuda_malloc_warning:
-            print("\nWARNING: this card most likely does not support cuda-malloc, if you get \"CUDA error\" please run ComfyUI with: --disable-cuda-malloc\n")
-
 def prompt_worker(q, server):
     e = execution.PromptExecutor(server)
     while True:
@@ -107,7 +93,6 @@ async def run(server, address='', port=8188, verbose=True, call_on_start=None):
 
 def hijack_progress(server):
     def hook(value, total, preview_image):
-        comfy.model_management.throw_exception_if_processing_interrupted()
         server.send_sync("progress", {"value": value, "max": total}, server.client_id)
         if preview_image is not None:
             server.send_sync(BinaryEventTypes.UNENCODED_PREVIEW_IMAGE, preview_image, server.client_id)
@@ -162,9 +147,6 @@ if __name__ == "__main__":
             load_extra_path_config(config_path)
 
     init_custom_nodes()
-
-    cuda_malloc_warning()
-
     server.add_routes()
     hijack_progress(server)
 

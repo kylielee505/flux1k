@@ -431,12 +431,10 @@ class ComfySettingsDialog extends ComfyDialog {
 class ComfyList {
 	#type;
 	#text;
-	#reverse;
 
-	constructor(text, type, reverse) {
+	constructor(text, type) {
 		this.#text = text;
 		this.#type = type || text.toLowerCase();
-		this.#reverse = reverse || false;
 		this.element = $el("div.comfy-list");
 		this.element.style.display = "none";
 	}
@@ -453,7 +451,7 @@ class ComfyList {
 					textContent: section,
 				}),
 				$el("div.comfy-list-items", [
-					...(this.#reverse ? items[section].reverse() : items[section]).map((item) => {
+					...items[section].map((item) => {
 						// Allow items to specify a custom remove action (e.g. for interrupt current prompt)
 						const removeAction = item.remove || {
 							name: "Delete",
@@ -531,7 +529,7 @@ export class ComfyUI {
 		this.batchCount = 1;
 		this.lastQueueSize = 0;
 		this.queue = new ComfyList("Queue");
-		this.history = new ComfyList("History", "history", true);
+		this.history = new ComfyList("History");
 
 		api.addEventListener("status", () => {
 			this.queue.update();
@@ -577,25 +575,6 @@ export class ComfyUI {
 			defaultValue: false,
 		});
 
-		this.settings.addSetting({
-			id: "Comfy.DisableFloatRounding",
-			name: "Disable rounding floats (requires page reload).",
-			type: "boolean",
-			defaultValue: false,
-		});
-
-		this.settings.addSetting({
-			id: "Comfy.FloatRoundingPrecision",
-			name: "Decimal places [0 = auto] (requires page reload).",
-			type: "slider",
-			attrs: {
-				min: 0,
-				max: 6,
-				step: 1,
-			},
-			defaultValue: 0,
-		});
-
 		const fileInput = $el("input", {
 			id: "comfy-file-input",
 			type: "file",
@@ -638,9 +617,7 @@ export class ComfyUI {
 				]),
 			]),
 			$el("div", {id: "extraOptions", style: {width: "100%", display: "none"}}, [
-				$el("div",[
-
-					$el("label", {innerHTML: "Batch count"}),
+				$el("label", {innerHTML: "Batch count"}, [
 					$el("input", {
 						id: "batchCountInputNumber",
 						type: "number",
@@ -662,23 +639,14 @@ export class ComfyUI {
 							this.batchCount = i.srcElement.value;
 							document.getElementById("batchCountInputNumber").value = i.srcElement.value;
 						},
-					}),		
-				]),
-
-				$el("div",[
-					$el("label",{
-						for:"autoQueueCheckbox",
-						innerHTML: "Auto Queue"
-						// textContent: "Auto Queue"
 					}),
 					$el("input", {
 						id: "autoQueueCheckbox",
 						type: "checkbox",
 						checked: false,
-						title: "Automatically queue prompt when the queue size hits 0",
-						
+						title: "automatically queue prompt when the queue size hits 0",
 					}),
-				])
+				]),
 			]),
 			$el("div.comfy-menu-btns", [
 				$el("button", {

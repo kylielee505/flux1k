@@ -4928,9 +4928,7 @@ LGraphNode.prototype.executeAction = function(action)
         this.title = o.title;
         this._bounding.set(o.bounding);
         this.color = o.color;
-        if (o.font_size) {
-            this.font_size = o.font_size;
-        }
+        this.font = o.font;
     };
 
     LGraphGroup.prototype.serialize = function() {
@@ -4944,7 +4942,7 @@ LGraphNode.prototype.executeAction = function(action)
                 Math.round(b[3])
             ],
             color: this.color,
-            font_size: this.font_size
+            font: this.font
         };
     };
 
@@ -6235,17 +6233,11 @@ LGraphNode.prototype.executeAction = function(action)
 																					,posAdd:[!mClikSlot_isOut?-30:30, -alphaPosY*130] //-alphaPosY*30]
 																					,posSizeFix:[!mClikSlot_isOut?-1:0, 0] //-alphaPosY*2*/
 																				});
-							skip_action = true;
+								
 						}
 					}
 				}
 			}
-
-			if (!skip_action && this.allow_dragcanvas) {
-            	//console.log("pointerevents: dragging_canvas start from middle button");
-            	this.dragging_canvas = true;
-            }
-
         	
         } else if (e.which == 3 || this.pointer_is_double) {
 			
@@ -11531,7 +11523,7 @@ LGraphNode.prototype.executeAction = function(action)
                     if (timeout) {
                         clearInterval(timeout);
                     }
-                    timeout = setTimeout(refreshHelper, 10);
+                    timeout = setTimeout(refreshHelper, 250);
                     return;
                 }
                 e.preventDefault();

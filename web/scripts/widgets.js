@@ -1,25 +1,15 @@
 import { api } from "./api.js"
 
-function getNumberDefaults(inputData, defaultStep, precision, enable_rounding) {
+function getNumberDefaults(inputData, defaultStep) {
 	let defaultVal = inputData[1]["default"];
-	let { min, max, step, round} = inputData[1];
+	let { min, max, step } = inputData[1];
 
 	if (defaultVal == undefined) defaultVal = 0;
 	if (min == undefined) min = 0;
 	if (max == undefined) max = 2048;
 	if (step == undefined) step = defaultStep;
-	// precision is the number of decimal places to show.
-	// by default, display the the smallest number of decimal places such that changes of size step are visible.
-	if (precision == undefined) {
-		precision = Math.max(-Math.floor(Math.log10(step)),0);
-	}
 
-	if (enable_rounding && (round == undefined || round === true)) {
-		// by default, round the value to those decimal places shown.
-		round = Math.round(1000000*Math.pow(0.1,precision))/1000000;
-	}
-
-	return { val: defaultVal, config: { min, max, step: 10.0 * step, round, precision } };
+	return { val: defaultVal, config: { min, max, step: 10.0 * step } };
 }
 
 export function addValueControlWidget(node, targetWidget, defaultValue = "randomize", values) {
@@ -86,7 +76,7 @@ export function addValueControlWidget(node, targetWidget, defaultValue = "random
 				targetWidget.value = max;
 		}
 	}
-	return valueControl;
+	return valueControl;	
 };
 
 function seedWidget(node, inputName, inputData, app) {
@@ -273,22 +263,12 @@ export const ComfyWidgets = {
 	"INT:noise_seed": seedWidget,
 	FLOAT(node, inputName, inputData, app) {
 		let widgetType = isSlider(inputData[1]["display"], app);
-		let precision = app.ui.settings.getSettingValue("Comfy.FloatRoundingPrecision");
-		let disable_rounding = app.ui.settings.getSettingValue("Comfy.DisableFloatRounding")
-		if (precision == 0) precision = undefined;
-		const { val, config } = getNumberDefaults(inputData, 0.5, precision, !disable_rounding);
-		return { widget: node.addWidget(widgetType, inputName, val, 
-			function (v) {
-				if (config.round) {
-					this.value = Math.round(v/config.round)*config.round;
-				} else {
-					this.value = v;
-				}
-			}, config) };
+		const { val, config } = getNumberDefaults(inputData, 0.5);
+		return { widget: node.addWidget(widgetType, inputName, val, () => {}, config) };
 	},
 	INT(node, inputName, inputData, app) {
 		let widgetType = isSlider(inputData[1]["display"], app);
-		const { val, config } = getNumberDefaults(inputData, 1, 0, true);
+		const { val, config } = getNumberDefaults(inputData, 1);
 		Object.assign(config, { precision: 0 });
 		return {
 			widget: node.addWidget(
@@ -319,17 +299,11 @@ export const ComfyWidgets = {
 		const defaultVal = inputData[1].default || "";
 		const multiline = !!inputData[1].multiline;
 
-		let res;
 		if (multiline) {
-			res = addMultilineWidget(node, inputName, { defaultVal, ...inputData[1] }, app);
+			return addMultilineWidget(node, inputName, { defaultVal, ...inputData[1] }, app);
 		} else {
-			res = { widget: node.addWidget("text", inputName, defaultVal, () => {}, {}) };
+			return { widget: node.addWidget("text", inputName, defaultVal, () => {}, {}) };
 		}
-
-		if(inputData[1].dynamicPrompts != undefined)
-			res.widget.dynamicPrompts = inputData[1].dynamicPrompts;
-
-		return res;
 	},
 	COMBO(node, inputName, inputData) {
 		const type = inputData[0];
@@ -355,7 +329,7 @@ export const ComfyWidgets = {
 				subfolder = name.substring(0, folder_separator);
 				name = name.substring(folder_separator + 1);
 			}
-			img.src = api.apiURL(`/view?filename=${encodeURIComponent(name)}&type=input&subfolder=${subfolder}${app.getPreviewFormatParam()}`);
+			img.src = api.apiURL(`/view?filename=${name}&type=input&subfolder=${subfolder}${app.getPreviewFormatParam()}`);
 			node.setSizeForImage?.();
 		}
 
@@ -407,12 +381,11 @@ export const ComfyWidgets = {
 			}
 		});
 
-		async function uploadFile(file, updateNode, pasted = false) {
+		async function uploadFile(file, updateNode) {
 			try {
 				// Wrap file in formdata so it includes filename
 				const body = new FormData();
 				body.append("image", file);
-				if (pasted) body.append("subfolder", "pasted");
 				const resp = await api.fetchApi("/upload/image", {
 					method: "POST",
 					body,
@@ -420,17 +393,15 @@ export const ComfyWidgets = {
 
 				if (resp.status === 200) {
 					const data = await resp.json();
-					// Add the file to the dropdown list and update the widget value
-					let path = data.name;
-					if (data.subfolder) path = data.subfolder + "/" + path;
-
-					if (!imageWidget.options.values.includes(path)) {
-						imageWidget.options.values.push(path);
+					// Add the file as an option and update the widget value
+					if (!imageWidget.options.values.includes(data.name)) {
+						imageWidget.options.values.push(data.name);
 					}
 
 					if (updateNode) {
-						showImage(path);
-						imageWidget.value = path;
+						showImage(data.name);
+
+						imageWidget.value = data.name;
 					}
 				} else {
 					alert(resp.status + " - " + resp.statusText);
@@ -482,16 +453,6 @@ export const ComfyWidgets = {
 
 			return handled;
 		};
-
-		node.pasteFile = function(file) {
-			if (file.type.startsWith("image/")) {
-				const is_pasted = (file.name === "image.png") &&
-								  (file.lastModified - Date.now() < 2000);
-				uploadFile(file, true, is_pasted);
-				return true;
-			}
-			return false;
-		}
 
 		return { widget: uploadWidget };
 	},

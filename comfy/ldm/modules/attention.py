@@ -10,14 +10,13 @@ from .diffusionmodules.util import checkpoint
 from .sub_quadratic_attention import efficient_dot_product_attention
 
 from comfy import model_management
+import comfy.ops
 
 if model_management.xformers_enabled():
     import xformers
     import xformers.ops
 
 from comfy.cli_args import args
-import comfy.ops
-
 # CrossAttn precision handling
 if args.dont_upcast_attention:
     print("disabling upcasting of attention")
@@ -53,9 +52,9 @@ def init_(tensor):
 
 # feedforward
 class GEGLU(nn.Module):
-    def __init__(self, dim_in, dim_out, dtype=None, device=None, operations=comfy.ops):
+    def __init__(self, dim_in, dim_out, dtype=None, device=None):
         super().__init__()
-        self.proj = operations.Linear(dim_in, dim_out * 2, dtype=dtype, device=device)
+        self.proj = comfy.ops.Linear(dim_in, dim_out * 2, dtype=dtype, device=device)
 
     def forward(self, x):
         x, gate = self.proj(x).chunk(2, dim=-1)
@@ -63,19 +62,19 @@ class GEGLU(nn.Module):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, dim, dim_out=None, mult=4, glu=False, dropout=0., dtype=None, device=None, operations=comfy.ops):
+    def __init__(self, dim, dim_out=None, mult=4, glu=False, dropout=0., dtype=None, device=None):
         super().__init__()
         inner_dim = int(dim * mult)
         dim_out = default(dim_out, dim)
         project_in = nn.Sequential(
-            operations.Linear(dim, inner_dim, dtype=dtype, device=device),
+            comfy.ops.Linear(dim, inner_dim, dtype=dtype, device=device),
             nn.GELU()
-        ) if not glu else GEGLU(dim, inner_dim, dtype=dtype, device=device, operations=operations)
+        ) if not glu else GEGLU(dim, inner_dim, dtype=dtype, device=device)
 
         self.net = nn.Sequential(
             project_in,
             nn.Dropout(dropout),
-            operations.Linear(inner_dim, dim_out, dtype=dtype, device=device)
+            comfy.ops.Linear(inner_dim, dim_out, dtype=dtype, device=device)
         )
 
     def forward(self, x):
@@ -149,7 +148,7 @@ class SpatialSelfAttention(nn.Module):
 
 
 class CrossAttentionBirchSan(nn.Module):
-    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0., dtype=None, device=None, operations=comfy.ops):
+    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0., dtype=None, device=None):
         super().__init__()
         inner_dim = dim_head * heads
         context_dim = default(context_dim, query_dim)
@@ -157,12 +156,12 @@ class CrossAttentionBirchSan(nn.Module):
         self.scale = dim_head ** -0.5
         self.heads = heads
 
-        self.to_q = operations.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_k = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_v = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_q = comfy.ops.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_k = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_v = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
 
         self.to_out = nn.Sequential(
-            operations.Linear(inner_dim, query_dim, dtype=dtype, device=device),
+            comfy.ops.Linear(inner_dim, query_dim, dtype=dtype, device=device),
             nn.Dropout(dropout)
         )
 
@@ -246,7 +245,7 @@ class CrossAttentionBirchSan(nn.Module):
 
 
 class CrossAttentionDoggettx(nn.Module):
-    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0., dtype=None, device=None, operations=comfy.ops):
+    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0., dtype=None, device=None):
         super().__init__()
         inner_dim = dim_head * heads
         context_dim = default(context_dim, query_dim)
@@ -254,12 +253,12 @@ class CrossAttentionDoggettx(nn.Module):
         self.scale = dim_head ** -0.5
         self.heads = heads
 
-        self.to_q = operations.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_k = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_v = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_q = comfy.ops.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_k = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_v = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
 
         self.to_out = nn.Sequential(
-            operations.Linear(inner_dim, query_dim, dtype=dtype, device=device),
+            comfy.ops.Linear(inner_dim, query_dim, dtype=dtype, device=device),
             nn.Dropout(dropout)
         )
 
@@ -323,7 +322,8 @@ class CrossAttentionDoggettx(nn.Module):
                 break
             except model_management.OOM_EXCEPTION as e:
                 if first_op_done == False:
-                    model_management.soft_empty_cache(True)
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
                     if cleared_cache == False:
                         cleared_cache = True
                         print("out of memory error, emptying cache and trying again")
@@ -343,7 +343,7 @@ class CrossAttentionDoggettx(nn.Module):
         return self.to_out(r2)
 
 class CrossAttention(nn.Module):
-    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0., dtype=None, device=None, operations=comfy.ops):
+    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0., dtype=None, device=None):
         super().__init__()
         inner_dim = dim_head * heads
         context_dim = default(context_dim, query_dim)
@@ -351,12 +351,12 @@ class CrossAttention(nn.Module):
         self.scale = dim_head ** -0.5
         self.heads = heads
 
-        self.to_q = operations.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_k = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_v = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_q = comfy.ops.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_k = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_v = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
 
         self.to_out = nn.Sequential(
-            operations.Linear(inner_dim, query_dim, dtype=dtype, device=device),
+            comfy.ops.Linear(inner_dim, query_dim, dtype=dtype, device=device),
             nn.Dropout(dropout)
         )
 
@@ -399,19 +399,21 @@ class CrossAttention(nn.Module):
 
 class MemoryEfficientCrossAttention(nn.Module):
     # https://github.com/MatthieuTPHR/diffusers/blob/d80b531ff8060ec1ea982b65a1b8df70f73aa67c/src/diffusers/models/attention.py#L223
-    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0.0, dtype=None, device=None, operations=comfy.ops):
+    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0.0, dtype=None, device=None):
         super().__init__()
+        print(f"Setting up {self.__class__.__name__}. Query dim is {query_dim}, context_dim is {context_dim} and using "
+              f"{heads} heads.")
         inner_dim = dim_head * heads
         context_dim = default(context_dim, query_dim)
 
         self.heads = heads
         self.dim_head = dim_head
 
-        self.to_q = operations.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_k = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_v = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_q = comfy.ops.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_k = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_v = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
 
-        self.to_out = nn.Sequential(operations.Linear(inner_dim, query_dim, dtype=dtype, device=device), nn.Dropout(dropout))
+        self.to_out = nn.Sequential(comfy.ops.Linear(inner_dim, query_dim, dtype=dtype, device=device), nn.Dropout(dropout))
         self.attention_op: Optional[Any] = None
 
     def forward(self, x, context=None, value=None, mask=None):
@@ -448,7 +450,7 @@ class MemoryEfficientCrossAttention(nn.Module):
         return self.to_out(out)
 
 class CrossAttentionPytorch(nn.Module):
-    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0., dtype=None, device=None, operations=comfy.ops):
+    def __init__(self, query_dim, context_dim=None, heads=8, dim_head=64, dropout=0., dtype=None, device=None):
         super().__init__()
         inner_dim = dim_head * heads
         context_dim = default(context_dim, query_dim)
@@ -456,11 +458,11 @@ class CrossAttentionPytorch(nn.Module):
         self.heads = heads
         self.dim_head = dim_head
 
-        self.to_q = operations.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_k = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
-        self.to_v = operations.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_q = comfy.ops.Linear(query_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_k = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
+        self.to_v = comfy.ops.Linear(context_dim, inner_dim, bias=False, dtype=dtype, device=device)
 
-        self.to_out = nn.Sequential(operations.Linear(inner_dim, query_dim, dtype=dtype, device=device), nn.Dropout(dropout))
+        self.to_out = nn.Sequential(comfy.ops.Linear(inner_dim, query_dim, dtype=dtype, device=device), nn.Dropout(dropout))
         self.attention_op: Optional[Any] = None
 
     def forward(self, x, context=None, value=None, mask=None):
@@ -506,14 +508,14 @@ else:
 
 class BasicTransformerBlock(nn.Module):
     def __init__(self, dim, n_heads, d_head, dropout=0., context_dim=None, gated_ff=True, checkpoint=True,
-                 disable_self_attn=False, dtype=None, device=None, operations=comfy.ops):
+                 disable_self_attn=False, dtype=None, device=None):
         super().__init__()
         self.disable_self_attn = disable_self_attn
         self.attn1 = CrossAttention(query_dim=dim, heads=n_heads, dim_head=d_head, dropout=dropout,
-                              context_dim=context_dim if self.disable_self_attn else None, dtype=dtype, device=device, operations=operations)  # is a self-attention if not self.disable_self_attn
-        self.ff = FeedForward(dim, dropout=dropout, glu=gated_ff, dtype=dtype, device=device, operations=operations)
+                              context_dim=context_dim if self.disable_self_attn else None, dtype=dtype, device=device)  # is a self-attention if not self.disable_self_attn
+        self.ff = FeedForward(dim, dropout=dropout, glu=gated_ff, dtype=dtype, device=device)
         self.attn2 = CrossAttention(query_dim=dim, context_dim=context_dim,
-                              heads=n_heads, dim_head=d_head, dropout=dropout, dtype=dtype, device=device, operations=operations)  # is self-attn if context is none
+                              heads=n_heads, dim_head=d_head, dropout=dropout, dtype=dtype, device=device)  # is self-attn if context is none
         self.norm1 = nn.LayerNorm(dim, dtype=dtype, device=device)
         self.norm2 = nn.LayerNorm(dim, dtype=dtype, device=device)
         self.norm3 = nn.LayerNorm(dim, dtype=dtype, device=device)
@@ -646,7 +648,7 @@ class SpatialTransformer(nn.Module):
     def __init__(self, in_channels, n_heads, d_head,
                  depth=1, dropout=0., context_dim=None,
                  disable_self_attn=False, use_linear=False,
-                 use_checkpoint=True, dtype=None, device=None, operations=comfy.ops):
+                 use_checkpoint=True, dtype=None, device=None):
         super().__init__()
         if exists(context_dim) and not isinstance(context_dim, list):
             context_dim = [context_dim] * depth
@@ -654,26 +656,26 @@ class SpatialTransformer(nn.Module):
         inner_dim = n_heads * d_head
         self.norm = Normalize(in_channels, dtype=dtype, device=device)
         if not use_linear:
-            self.proj_in = operations.Conv2d(in_channels,
+            self.proj_in = nn.Conv2d(in_channels,
                                      inner_dim,
                                      kernel_size=1,
                                      stride=1,
                                      padding=0, dtype=dtype, device=device)
         else:
-            self.proj_in = operations.Linear(in_channels, inner_dim, dtype=dtype, device=device)
+            self.proj_in = comfy.ops.Linear(in_channels, inner_dim, dtype=dtype, device=device)
 
         self.transformer_blocks = nn.ModuleList(
             [BasicTransformerBlock(inner_dim, n_heads, d_head, dropout=dropout, context_dim=context_dim[d],
-                                   disable_self_attn=disable_self_attn, checkpoint=use_checkpoint, dtype=dtype, device=device, operations=operations)
+                                   disable_self_attn=disable_self_attn, checkpoint=use_checkpoint, dtype=dtype, device=device)
                 for d in range(depth)]
         )
         if not use_linear:
-            self.proj_out = operations.Conv2d(inner_dim,in_channels,
+            self.proj_out = nn.Conv2d(inner_dim,in_channels,
                                                   kernel_size=1,
                                                   stride=1,
                                                   padding=0, dtype=dtype, device=device)
         else:
-            self.proj_out = operations.Linear(in_channels, inner_dim, dtype=dtype, device=device)
+            self.proj_out = comfy.ops.Linear(in_channels, inner_dim, dtype=dtype, device=device)
         self.use_linear = use_linear
 
     def forward(self, x, context=None, transformer_options={}):

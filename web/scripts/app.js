@@ -284,11 +284,6 @@ export class ComfyApp {
 				}
 			}
 
-			options.push({
-					content: "Bypass",
-					callback: (obj) => { if (this.mode === 4) this.mode = 0; else this.mode = 4; this.graph.change(); }
-				});
-
 			// prevent conflict of clipspace content
 			if(!ComfyApp.clipspace_return_node) {
 				options.push({
@@ -532,17 +527,7 @@ export class ComfyApp {
 								}
 							}
 							this.imageRects.push([x, y, cellWidth, cellHeight]);
-
-							let wratio = cellWidth/img.width;
-							let hratio = cellHeight/img.height;
-							var ratio = Math.min(wratio, hratio);
-
-							let imgHeight = ratio * img.height;
-							let imgY = row * cellHeight + shiftY + (cellHeight - imgHeight)/2;
-							let imgWidth = ratio * img.width;
-							let imgX = col * cellWidth + shiftX + (cellWidth - imgWidth)/2;
-
-							ctx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
+							ctx.drawImage(img, x, y, cellWidth, cellHeight);
 							ctx.filter = "none";
 						}
 
@@ -677,44 +662,11 @@ export class ComfyApp {
 	}
 
 	/**
-	 * Adds a handler on paste that extracts and loads images or workflows from pasted JSON data
+	 * Adds a handler on paste that extracts and loads workflows from pasted JSON data
 	 */
 	#addPasteHandler() {
 		document.addEventListener("paste", (e) => {
-			// ctrl+shift+v is used to paste nodes with connections
-			// this is handled by litegraph
-			if(this.shiftDown) return;
-
-			let data = (e.clipboardData || window.clipboardData);
-			const items = data.items;
-
-			// Look for image paste data
-			for (const item of items) {
-				if (item.type.startsWith('image/')) {
-					var imageNode = null;
-
-					// If an image node is selected, paste into it
-					if (this.canvas.current_node &&
-						this.canvas.current_node.is_selected &&
-						ComfyApp.isImageNode(this.canvas.current_node)) {
-						imageNode = this.canvas.current_node;
-					}
-
-					// No image node selected: add a new one
-					if (!imageNode) {
-						const newNode = LiteGraph.createNode("LoadImage");
-						newNode.pos = [...this.canvas.graph_mouse];
-						imageNode = this.graph.add(newNode);
-						this.graph.change();
-					}
-					const blob = item.getAsFile();
-					imageNode.pasteFile(blob);
-					return;
-				}
-			}
-
-			// No image found. Look for node data
-			data = data.getData("text/plain");
+			let data = (e.clipboardData || window.clipboardData).getData("text/plain");
 			let workflow;
 			try {
 				data = data.slice(data.indexOf("{"));
@@ -730,41 +682,8 @@ export class ComfyApp {
 			if (workflow && workflow.version && workflow.nodes && workflow.extra) {
 				this.loadGraphData(workflow);
 			}
-			else {
-				if (e.target.type === "text" || e.target.type === "textarea") {
-					return;
-				}
-
-				// Litegraph default paste
-				this.canvas.pasteFromClipboard();
-			}
-
-
 		});
 	}
-
-
-	/**
-	 * Adds a handler on copy that serializes selected nodes to JSON
-	 */
-	#addCopyHandler() {
-		document.addEventListener("copy", (e) => {
-			if (e.target.type === "text" || e.target.type === "textarea") {
-				// Default system copy
-				return;
-			}
-
-			// copy nodes and clear clipboard
-			if (e.target.className === "litegraph" && this.canvas.selected_nodes) {
-				this.canvas.copyToClipboard();
-				e.clipboardData.setData('text', ' '); //clearData doesn't remove images from clipboard
-				e.preventDefault();
-				e.stopImmediatePropagation();
-				return false;
-			}
-		});
-	}
-
 
 	/**
 	 * Handle mouse
@@ -821,6 +740,12 @@ export class ComfyApp {
 		const self = this;
 		const origProcessKey = LGraphCanvas.prototype.processKey;
 		LGraphCanvas.prototype.processKey = function(e) {
+			const res = origProcessKey.apply(this, arguments);
+
+			if (res === false) {
+				return res;
+			}
+
 			if (!this.graph) {
 				return;
 			}
@@ -831,10 +756,9 @@ export class ComfyApp {
 				return;
 			}
 
-			if (e.type == "keydown" && !e.repeat) {
-
+			if (e.type == "keydown") {
 				// Ctrl + M mute/unmute
-				if (e.key === 'm' && e.ctrlKey) {
+				if (e.keyCode == 77 && e.ctrlKey) {
 					if (this.selected_nodes) {
 						for (var i in this.selected_nodes) {
 							if (this.selected_nodes[i].mode === 2) { // never
@@ -847,8 +771,7 @@ export class ComfyApp {
 					block_default = true;
 				}
 
-				// Ctrl + B bypass
-				if (e.key === 'b' && e.ctrlKey) {
+				if (e.keyCode == 66 && e.ctrlKey) {
 					if (this.selected_nodes) {
 						for (var i in this.selected_nodes) {
 							if (this.selected_nodes[i].mode === 4) { // never
@@ -860,18 +783,6 @@ export class ComfyApp {
 					}
 					block_default = true;
 				}
-
-				// Ctrl+C Copy
-				if ((e.key === 'c') && (e.metaKey || e.ctrlKey)) {
-					// Trigger onCopy
-					return true;
-				}
-
-				// Ctrl+V Paste
-				if ((e.key === 'v' || e.key == 'V') && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
-					// Trigger onPaste
-					return true;
-				}
 			}
 
 			this.graph.change();
@@ -882,8 +793,7 @@ export class ComfyApp {
 				return false;
 			}
 
-			// Fall through to Litegraph defaults
-			return origProcessKey.apply(this, arguments);
+			return res;
 		};
 	}
 
@@ -1079,10 +989,6 @@ export class ComfyApp {
 		api.addEventListener("execution_start", ({ detail }) => {
 			this.runningNodeId = null;
 			this.lastExecutionError = null
-			this.graph._nodes.forEach((node) => {
-				if (node.onExecutionStart)
-					node.onExecutionStart()
-			})
 		});
 
 		api.addEventListener("execution_error", ({ detail }) => {
@@ -1115,21 +1021,18 @@ export class ComfyApp {
 	}
 
 	/**
-	 * Loads all extensions from the API into the window in parallel
+	 * Loads all extensions from the API into the window
 	 */
 	async #loadExtensions() {
-	    const extensions = await api.getExtensions();
-	    this.logging.addEntry("Comfy.App", "debug", { Extensions: extensions });
-	
-	    const extensionPromises = extensions.map(async ext => {
-	        try {
-	            await import(api.apiURL(ext));
-	        } catch (error) {
-	            console.error("Error loading extension", ext, error);
-	        }
-	    });
-	
-	    await Promise.all(extensionPromises);
+		const extensions = await api.getExtensions();
+		this.logging.addEntry("Comfy.App", "debug", { Extensions: extensions });
+		for (const ext of extensions) {
+			try {
+				await import(api.apiURL(ext));
+			} catch (error) {
+				console.error("Error loading extension", ext, error);
+			}
+		}
 	}
 
 	/**
@@ -1199,7 +1102,6 @@ export class ComfyApp {
 		this.#addDrawGroupsHandler();
 		this.#addApiUpdateHandlers();
 		this.#addDropHandler();
-		this.#addCopyHandler();
 		this.#addPasteHandler();
 		this.#addKeyboardHandler();
 
@@ -1241,29 +1143,22 @@ export class ComfyApp {
 						const inputData = inputs[inputName];
 						const type = inputData[0];
 
-						let widgetCreated = true;
-						if (Array.isArray(type)) {
-							// Enums
-							Object.assign(config, widgets.COMBO(this, inputName, inputData, app) || {});
-						} else if (`${type}:${inputName}` in widgets) {
-							// Support custom widgets by Type:Name
-							Object.assign(config, widgets[`${type}:${inputName}`](this, inputName, inputData, app) || {});
-						} else if (type in widgets) {
-							// Standard type widgets
-							Object.assign(config, widgets[type](this, inputName, inputData, app) || {});
-						} else {
-							// Node connection inputs
+						if(inputData[1]?.forceInput) {
 							this.addInput(inputName, type);
-							widgetCreated = false;
-						}
-
-						if(widgetCreated && inputData[1]?.forceInput && config?.widget) {
-							if (!config.widget.options) config.widget.options = {};
-							config.widget.options.forceInput = inputData[1].forceInput;
-						}
-						if(widgetCreated && inputData[1]?.defaultInput && config?.widget) {
-							if (!config.widget.options) config.widget.options = {};
-							config.widget.options.defaultInput = inputData[1].defaultInput;
+						} else {
+							if (Array.isArray(type)) {
+								// Enums
+								Object.assign(config, widgets.COMBO(this, inputName, inputData, app) || {});
+							} else if (`${type}:${inputName}` in widgets) {
+								// Support custom widgets by Type:Name
+								Object.assign(config, widgets[`${type}:${inputName}`](this, inputName, inputData, app) || {});
+							} else if (type in widgets) {
+								// Standard type widgets
+								Object.assign(config, widgets[type](this, inputName, inputData, app) || {});
+							} else {
+								// Node connection inputs
+								this.addInput(inputName, type);
+							}
 						}
 					}
 
@@ -1308,13 +1203,7 @@ export class ComfyApp {
 
 		let reset_invalid_values = false;
 		if (!graphData) {
-			if (typeof structuredClone === "undefined")
-			{
-				graphData = JSON.parse(JSON.stringify(defaultGraph));
-			}else
-			{
-				graphData = structuredClone(defaultGraph);
-			}
+			graphData = structuredClone(defaultGraph);
 			reset_invalid_values = true;
 		}
 

@@ -17,11 +17,11 @@
 """
 
 import torch
-import comfy.model_management
+import totoro.model_management
 
 def cast_bias_weight(s, input):
     bias = None
-    non_blocking = comfy.model_management.device_supports_non_blocking(input.device)
+    non_blocking = totoro.model_management.device_supports_non_blocking(input.device)
     if s.bias is not None:
         bias = s.bias.to(device=input.device, dtype=input.dtype, non_blocking=non_blocking)
         if s.bias_function is not None:

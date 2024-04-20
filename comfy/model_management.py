@@ -1,8 +1,8 @@
 import psutil
 import logging
 from enum import Enum
-from comfy.cli_args import args
-import comfy.utils
+from totoro.cli_args import args
+import totoro.utils
 import torch
 import sys
 

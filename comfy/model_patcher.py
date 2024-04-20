@@ -4,8 +4,8 @@ import inspect
 import logging
 import uuid
 
-import comfy.utils
-import comfy.model_management
+import totoro.utils
+import totoro.model_management
 
 def apply_weight_decompose(dora_scale, weight):
     weight_norm = (
@@ -64,7 +64,7 @@ class ModelPatcher:
         if self.size > 0:
             return self.size
         model_sd = self.model.state_dict()
-        self.size = comfy.model_management.module_size(self.model)
+        self.size = totoro.model_management.module_size(self.model)
         self.model_keys = set(model_sd.keys())
         return self.size
 
@@ -168,7 +168,7 @@ class ModelPatcher:
             if name in self.object_patches_backup:
                 return self.object_patches_backup[name]
             else:
-                return comfy.utils.get_attr(self.model, name)
+                return totoro.utils.get_attr(self.model, name)
 
     def model_patches_to(self, device):
         to = self.model_options["transformer_options"]
@@ -208,7 +208,7 @@ class ModelPatcher:
         return list(p)
 
     def get_key_patches(self, filter_prefix=None):
-        comfy.model_management.unload_model_clones(self)
+        totoro.model_management.unload_model_clones(self)
         model_sd = self.model_state_dict()
         p = {}
         for k in model_sd:
@@ -234,7 +234,7 @@ class ModelPatcher:
         if key not in self.patches:
             return
 
-        weight = comfy.utils.get_attr(self.model, key)
+        weight = totoro.utils.get_attr(self.model, key)
 
         inplace_update = self.weight_inplace_update
 
@@ -242,18 +242,18 @@ class ModelPatcher:
             self.backup[key] = weight.to(device=self.offload_device, copy=inplace_update)
 
         if device_to is not None:
-            temp_weight = comfy.model_management.cast_to_device(weight, device_to, torch.float32, copy=True)
+            temp_weight = totoro.model_management.cast_to_device(weight, device_to, torch.float32, copy=True)
         else:
             temp_weight = weight.to(torch.float32, copy=True)
         out_weight = self.calculate_weight(self.patches[key], temp_weight, key).to(weight.dtype)
         if inplace_update:
-            comfy.utils.copy_to_param(self.model, key, out_weight)
+            totoro.utils.copy_to_param(self.model, key, out_weight)
         else:
-            comfy.utils.set_attr_param(self.model, key, out_weight)
+            totoro.utils.set_attr_param(self.model, key, out_weight)
 
     def patch_model(self, device_to=None, patch_weights=True):
         for k in self.object_patches:
-            old = comfy.utils.set_attr(self.model, k, self.object_patches[k])
+            old = totoro.utils.set_attr(self.model, k, self.object_patches[k])
             if k not in self.object_patches_backup:
                 self.object_patches_backup[k] = old
 
@@ -287,7 +287,7 @@ class ModelPatcher:
         for n, m in self.model.named_modules():
             lowvram_weight = False
             if hasattr(m, "comfy_cast_weights"):
-                module_mem = comfy.model_management.module_size(m)
+                module_mem = totoro.model_management.module_size(m)
                 if mem_counter + module_mem >= lowvram_model_memory:
                     lowvram_weight = True
 
@@ -307,7 +307,7 @@ class ModelPatcher:
                     self.patch_weight_to_device(weight_key, device_to)
                     self.patch_weight_to_device(bias_key, device_to)
                     m.to(device_to)
-                    mem_counter += comfy.model_management.module_size(m)
+                    mem_counter += totoro.model_management.module_size(m)
                     logging.debug("lowvram: loaded module regularly {}".format(m))
 
         self.model_lowvram = True
@@ -337,22 +337,22 @@ class ModelPatcher:
                     if w1.shape != weight.shape:
                         logging.warning("WARNING SHAPE MISMATCH {} WEIGHT NOT MERGED {} != {}".format(key, w1.shape, weight.shape))
                     else:
-                        weight += alpha * comfy.model_management.cast_to_device(w1, weight.device, weight.dtype)
+                        weight += alpha * totoro.model_management.cast_to_device(w1, weight.device, weight.dtype)
             elif patch_type == "lora": #lora/locon
-                mat1 = comfy.model_management.cast_to_device(v[0], weight.device, torch.float32)
-                mat2 = comfy.model_management.cast_to_device(v[1], weight.device, torch.float32)
+                mat1 = totoro.model_management.cast_to_device(v[0], weight.device, torch.float32)
+                mat2 = totoro.model_management.cast_to_device(v[1], weight.device, torch.float32)
                 dora_scale = v[4]
                 if v[2] is not None:
                     alpha *= v[2] / mat2.shape[0]
                 if v[3] is not None:
                     #locon mid weights, hopefully the math is fine because I didn't properly test it
-                    mat3 = comfy.model_management.cast_to_device(v[3], weight.device, torch.float32)
+                    mat3 = totoro.model_management.cast_to_device(v[3], weight.device, torch.float32)
                     final_shape = [mat2.shape[1], mat2.shape[0], mat3.shape[2], mat3.shape[3]]
                     mat2 = torch.mm(mat2.transpose(0, 1).flatten(start_dim=1), mat3.transpose(0, 1).flatten(start_dim=1)).reshape(final_shape).transpose(0, 1)
                 try:
                     weight += (alpha * torch.mm(mat1.flatten(start_dim=1), mat2.flatten(start_dim=1))).reshape(weight.shape).type(weight.dtype)
                     if dora_scale is not None:
-                        weight = apply_weight_decompose(comfy.model_management.cast_to_device(dora_scale, weight.device, torch.float32), weight)
+                        weight = apply_weight_decompose(totoro.model_management.cast_to_device(dora_scale, weight.device, torch.float32), weight)
                 except Exception as e:
                     logging.error("ERROR {} {} {}".format(patch_type, key, e))
             elif patch_type == "lokr":
@@ -368,23 +368,23 @@ class ModelPatcher:
 
                 if w1 is None:
                     dim = w1_b.shape[0]
-                    w1 = torch.mm(comfy.model_management.cast_to_device(w1_a, weight.device, torch.float32),
-                                  comfy.model_management.cast_to_device(w1_b, weight.device, torch.float32))
+                    w1 = torch.mm(totoro.model_management.cast_to_device(w1_a, weight.device, torch.float32),
+                                  totoro.model_management.cast_to_device(w1_b, weight.device, torch.float32))
                 else:
-                    w1 = comfy.model_management.cast_to_device(w1, weight.device, torch.float32)
+                    w1 = totoro.model_management.cast_to_device(w1, weight.device, torch.float32)
 
                 if w2 is None:
                     dim = w2_b.shape[0]
                     if t2 is None:
-                        w2 = torch.mm(comfy.model_management.cast_to_device(w2_a, weight.device, torch.float32),
-                                      comfy.model_management.cast_to_device(w2_b, weight.device, torch.float32))
+                        w2 = torch.mm(totoro.model_management.cast_to_device(w2_a, weight.device, torch.float32),
+                                      totoro.model_management.cast_to_device(w2_b, weight.device, torch.float32))
                     else:
                         w2 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                          comfy.model_management.cast_to_device(t2, weight.device, torch.float32),
-                                          comfy.model_management.cast_to_device(w2_b, weight.device, torch.float32),
-                                          comfy.model_management.cast_to_device(w2_a, weight.device, torch.float32))
+                                          totoro.model_management.cast_to_device(t2, weight.device, torch.float32),
+                                          totoro.model_management.cast_to_device(w2_b, weight.device, torch.float32),
+                                          totoro.model_management.cast_to_device(w2_a, weight.device, torch.float32))
                 else:
-                    w2 = comfy.model_management.cast_to_device(w2, weight.device, torch.float32)
+                    w2 = totoro.model_management.cast_to_device(w2, weight.device, torch.float32)
 
                 if len(w2.shape) == 4:
                     w1 = w1.unsqueeze(2).unsqueeze(2)
@@ -394,7 +394,7 @@ class ModelPatcher:
                 try:
                     weight += alpha * torch.kron(w1, w2).reshape(weight.shape).type(weight.dtype)
                     if dora_scale is not None:
-                        weight = apply_weight_decompose(comfy.model_management.cast_to_device(dora_scale, weight.device, torch.float32), weight)
+                        weight = apply_weight_decompose(totoro.model_management.cast_to_device(dora_scale, weight.device, torch.float32), weight)
                 except Exception as e:
                     logging.error("ERROR {} {} {}".format(patch_type, key, e))
             elif patch_type == "loha":
@@ -409,24 +409,24 @@ class ModelPatcher:
                     t1 = v[5]
                     t2 = v[6]
                     m1 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                      comfy.model_management.cast_to_device(t1, weight.device, torch.float32),
-                                      comfy.model_management.cast_to_device(w1b, weight.device, torch.float32),
-                                      comfy.model_management.cast_to_device(w1a, weight.device, torch.float32))
+                                      totoro.model_management.cast_to_device(t1, weight.device, torch.float32),
+                                      totoro.model_management.cast_to_device(w1b, weight.device, torch.float32),
+                                      totoro.model_management.cast_to_device(w1a, weight.device, torch.float32))
 
                     m2 = torch.einsum('i j k l, j r, i p -> p r k l',
-                                      comfy.model_management.cast_to_device(t2, weight.device, torch.float32),
-                                      comfy.model_management.cast_to_device(w2b, weight.device, torch.float32),
-                                      comfy.model_management.cast_to_device(w2a, weight.device, torch.float32))
+                                      totoro.model_management.cast_to_device(t2, weight.device, torch.float32),
+                                      totoro.model_management.cast_to_device(w2b, weight.device, torch.float32),
+                                      totoro.model_management.cast_to_device(w2a, weight.device, torch.float32))
                 else:
-                    m1 = torch.mm(comfy.model_management.cast_to_device(w1a, weight.device, torch.float32),
-                                  comfy.model_management.cast_to_device(w1b, weight.device, torch.float32))
-                    m2 = torch.mm(comfy.model_management.cast_to_device(w2a, weight.device, torch.float32),
-                                  comfy.model_management.cast_to_device(w2b, weight.device, torch.float32))
+                    m1 = torch.mm(totoro.model_management.cast_to_device(w1a, weight.device, torch.float32),
+                                  totoro.model_management.cast_to_device(w1b, weight.device, torch.float32))
+                    m2 = torch.mm(totoro.model_management.cast_to_device(w2a, weight.device, torch.float32),
+                                  totoro.model_management.cast_to_device(w2b, weight.device, torch.float32))
 
                 try:
                     weight += (alpha * m1 * m2).reshape(weight.shape).type(weight.dtype)
                     if dora_scale is not None:
-                        weight = apply_weight_decompose(comfy.model_management.cast_to_device(dora_scale, weight.device, torch.float32), weight)
+                        weight = apply_weight_decompose(totoro.model_management.cast_to_device(dora_scale, weight.device, torch.float32), weight)
                 except Exception as e:
                     logging.error("ERROR {} {} {}".format(patch_type, key, e))
             elif patch_type == "glora":
@@ -435,15 +435,15 @@ class ModelPatcher:
 
                 dora_scale = v[5]
 
-                a1 = comfy.model_management.cast_to_device(v[0].flatten(start_dim=1), weight.device, torch.float32)
-                a2 = comfy.model_management.cast_to_device(v[1].flatten(start_dim=1), weight.device, torch.float32)
-                b1 = comfy.model_management.cast_to_device(v[2].flatten(start_dim=1), weight.device, torch.float32)
-                b2 = comfy.model_management.cast_to_device(v[3].flatten(start_dim=1), weight.device, torch.float32)
+                a1 = totoro.model_management.cast_to_device(v[0].flatten(start_dim=1), weight.device, torch.float32)
+                a2 = totoro.model_management.cast_to_device(v[1].flatten(start_dim=1), weight.device, torch.float32)
+                b1 = totoro.model_management.cast_to_device(v[2].flatten(start_dim=1), weight.device, torch.float32)
+                b2 = totoro.model_management.cast_to_device(v[3].flatten(start_dim=1), weight.device, torch.float32)
 
                 try:
                     weight += ((torch.mm(b2, b1) + torch.mm(torch.mm(weight.flatten(start_dim=1), a2), a1)) * alpha).reshape(weight.shape).type(weight.dtype)
                     if dora_scale is not None:
-                        weight = apply_weight_decompose(comfy.model_management.cast_to_device(dora_scale, weight.device, torch.float32), weight)
+                        weight = apply_weight_decompose(totoro.model_management.cast_to_device(dora_scale, weight.device, torch.float32), weight)
                 except Exception as e:
                     logging.error("ERROR {} {} {}".format(patch_type, key, e))
             else:
@@ -467,10 +467,10 @@ class ModelPatcher:
 
             if self.weight_inplace_update:
                 for k in keys:
-                    comfy.utils.copy_to_param(self.model, k, self.backup[k])
+                    totoro.utils.copy_to_param(self.model, k, self.backup[k])
             else:
                 for k in keys:
-                    comfy.utils.set_attr_param(self.model, k, self.backup[k])
+                    totoro.utils.set_attr_param(self.model, k, self.backup[k])
 
             self.backup.clear()
 
@@ -480,6 +480,6 @@ class ModelPatcher:
 
         keys = list(self.object_patches_backup.keys())
         for k in keys:
-            comfy.utils.set_attr(self.model, k, self.object_patches_backup[k])
+            totoro.utils.set_attr(self.model, k, self.object_patches_backup[k])
 
         self.object_patches_backup.clear()

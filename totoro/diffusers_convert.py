@@ -9,7 +9,6 @@ import logging
 # =================#
 
 unet_conversion_map = [
-    # (stable-diffusion, HF Diffusers)
     ("time_embed.0.weight", "time_embedding.linear_1.weight"),
     ("time_embed.0.bias", "time_embedding.linear_1.bias"),
     ("time_embed.2.weight", "time_embedding.linear_2.weight"),
@@ -23,7 +22,6 @@ unet_conversion_map = [
 ]
 
 unet_conversion_map_resnet = [
-    # (stable-diffusion, HF Diffusers)
     ("in_layers.0", "norm1"),
     ("in_layers.2", "conv1"),
     ("out_layers.0", "norm2"),
@@ -108,7 +106,6 @@ def convert_unet_state_dict(unet_state_dict):
 # ================#
 
 vae_conversion_map = [
-    # (stable-diffusion, HF Diffusers)
     ("nin_shortcut", "conv_shortcut"),
     ("norm_out", "conv_norm_out"),
     ("mid.attn_1.", "mid_block.attentions.0."),
@@ -144,7 +141,6 @@ for i in range(2):
     vae_conversion_map.append((sd_mid_res_prefix, hf_mid_res_prefix))
 
 vae_conversion_map_attn = [
-    # (stable-diffusion, HF Diffusers)
     ("norm.", "group_norm."),
     ("q.", "query."),
     ("k.", "key."),
@@ -189,7 +185,6 @@ def convert_vae_state_dict(vae_state_dict):
 
 
 textenc_conversion_lst = [
-    # (stable-diffusion, HF Diffusers)
     ("resblocks.", "text_model.encoder.layers."),
     ("ln_1", "layer_norm1"),
     ("ln_2", "layer_norm2"),

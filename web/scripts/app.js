@@ -1,13 +1,13 @@
-import { ComfyLogging } from "./logging.js";
-import { ComfyWidgets, initWidgets } from "./widgets.js";
-import { ComfyUI, $el } from "./ui.js";
+import { kaonashiLogging } from "./logging.js";
+import { kaonashiWidgets, initWidgets } from "./widgets.js";
+import { kaonashiUI, $el } from "./ui.js";
 import { api } from "./api.js";
 import { defaultGraph } from "./defaultGraph.js";
 import { getPngMetadata, getWebpMetadata, importA1111, getLatentMetadata } from "./pnginfo.js";
 import { addDomClippingSetting } from "./domWidget.js";
 import { createImageHost, calculateImageGrid } from "./ui/imagePreview.js"
 
-export const ANIM_PREVIEW_WIDGET = "$$comfy_animation_preview"
+export const ANIM_PREVIEW_WIDGET = "$$kaonashi_animation_preview"
 
 function sanitizeNodeName(string) {
 	let entityMap = {
@@ -25,10 +25,10 @@ function sanitizeNodeName(string) {
 }
 
 /**
- * @typedef {import("types/comfy").ComfyExtension} ComfyExtension
+ * @typedef {import("types/kaonashi").kaonashiExtension} kaonashiExtension
  */
 
-export class ComfyApp {
+export class kaonashiApp {
 	/**
 	 * List of entries to queue
 	 * @type {{number: number, batchCount: number}[]}
@@ -50,12 +50,12 @@ export class ComfyApp {
 	static clipspace_return_node = null;
 
 	constructor() {
-		this.ui = new ComfyUI(this);
-		this.logging = new ComfyLogging(this);
+		this.ui = new kaonashiUI(this);
+		this.logging = new kaonashiLogging(this);
 
 		/**
 		 * List of extensions that are registered with the app
-		 * @type {ComfyExtension[]}
+		 * @type {kaonashiExtension[]}
 		 */
 		this.extensions = [];
 
@@ -79,7 +79,7 @@ export class ComfyApp {
 	}
 
 	getPreviewFormatParam() {
-		let preview_format = this.ui.settings.getSettingValue("Comfy.PreviewFormat");
+		let preview_format = this.ui.settings.getSettingValue("kaonashi.PreviewFormat");
 		if(preview_format)
 			return `&preview=${preview_format}`;
 		else
@@ -95,13 +95,13 @@ export class ComfyApp {
 	}
 
 	static onClipspaceEditorSave() {
-		if(ComfyApp.clipspace_return_node) {
-			ComfyApp.pasteFromClipspace(ComfyApp.clipspace_return_node);
+		if(kaonashiApp.clipspace_return_node) {
+			kaonashiApp.pasteFromClipspace(kaonashiApp.clipspace_return_node);
 		}
 	}
 
 	static onClipspaceEditorClosed() {
-		ComfyApp.clipspace_return_node = null;
+		kaonashiApp.clipspace_return_node = null;
 	}
 
 	static copyToClipspace(node) {
@@ -128,7 +128,7 @@ export class ComfyApp {
 			selectedIndex = node.imageIndex;
 		}
 
-		ComfyApp.clipspace = {
+		kaonashiApp.clipspace = {
 			'widgets': widgets,
 			'imgs': imgs,
 			'original_imgs': orig_imgs,
@@ -137,42 +137,42 @@ export class ComfyApp {
 			'img_paste_mode': 'selected' // reset to default im_paste_mode state on copy action
 		};
 
-		ComfyApp.clipspace_return_node = null;
+		kaonashiApp.clipspace_return_node = null;
 
-		if(ComfyApp.clipspace_invalidate_handler) {
-			ComfyApp.clipspace_invalidate_handler();
+		if(kaonashiApp.clipspace_invalidate_handler) {
+			kaonashiApp.clipspace_invalidate_handler();
 		}
 	}
 
 	static pasteFromClipspace(node) {
-		if(ComfyApp.clipspace) {
+		if(kaonashiApp.clipspace) {
 			// image paste
-			if(ComfyApp.clipspace.imgs && node.imgs) {
-				if(node.images && ComfyApp.clipspace.images) {
-					if(ComfyApp.clipspace['img_paste_mode'] == 'selected') {
-						node.images = [ComfyApp.clipspace.images[ComfyApp.clipspace['selectedIndex']]];
+			if(kaonashiApp.clipspace.imgs && node.imgs) {
+				if(node.images && kaonashiApp.clipspace.images) {
+					if(kaonashiApp.clipspace['img_paste_mode'] == 'selected') {
+						node.images = [kaonashiApp.clipspace.images[kaonashiApp.clipspace['selectedIndex']]];
 					}
 					else {
-						node.images = ComfyApp.clipspace.images;
+						node.images = kaonashiApp.clipspace.images;
 					}
 
 					if(app.nodeOutputs[node.id + ""])
 						app.nodeOutputs[node.id + ""].images = node.images;
 				}
 
-				if(ComfyApp.clipspace.imgs) {
+				if(kaonashiApp.clipspace.imgs) {
 					// deep-copy to cut link with clipspace
-					if(ComfyApp.clipspace['img_paste_mode'] == 'selected') {
+					if(kaonashiApp.clipspace['img_paste_mode'] == 'selected') {
 						const img = new Image();
-						img.src = ComfyApp.clipspace.imgs[ComfyApp.clipspace['selectedIndex']].src;
+						img.src = kaonashiApp.clipspace.imgs[kaonashiApp.clipspace['selectedIndex']].src;
 						node.imgs = [img];
 						node.imageIndex = 0;
 					}
 					else {
 						const imgs = [];
-						for(let i=0; i<ComfyApp.clipspace.imgs.length; i++) {
+						for(let i=0; i<kaonashiApp.clipspace.imgs.length; i++) {
 							imgs[i] = new Image();
-							imgs[i].src = ComfyApp.clipspace.imgs[i].src;
+							imgs[i].src = kaonashiApp.clipspace.imgs[i].src;
 							node.imgs = imgs;
 						}
 					}
@@ -180,8 +180,8 @@ export class ComfyApp {
 			}
 
 			if(node.widgets) {
-				if(ComfyApp.clipspace.images) {
-					const clip_image = ComfyApp.clipspace.images[ComfyApp.clipspace['selectedIndex']];
+				if(kaonashiApp.clipspace.images) {
+					const clip_image = kaonashiApp.clipspace.images[kaonashiApp.clipspace['selectedIndex']];
 					const index = node.widgets.findIndex(obj => obj.name === 'image');
 					if(index >= 0) {
 						if(node.widgets[index].type != 'image' && typeof node.widgets[index].value == "string" && clip_image.filename) {
@@ -192,8 +192,8 @@ export class ComfyApp {
 						}
 					}
 				}
-				if(ComfyApp.clipspace.widgets) {
-					ComfyApp.clipspace.widgets.forEach(({ type, name, value }) => {
+				if(kaonashiApp.clipspace.widgets) {
+					kaonashiApp.clipspace.widgets.forEach(({ type, name, value }) => {
 						const prop = Object.values(node.widgets).find(obj => obj.type === type && obj.name === name);
 						if (prop && prop.type != 'button') {
 							if(prop.type != 'image' && typeof prop.value == "string" && value.filename) {
@@ -214,7 +214,7 @@ export class ComfyApp {
 
 	/**
 	 * Invoke an extension callback
-	 * @param {keyof ComfyExtension} method The extension callback to execute
+	 * @param {keyof kaonashiExtension} method The extension callback to execute
 	 * @param  {any[]} args Any arguments to pass to the callback
 	 * @returns
 	 */
@@ -286,7 +286,7 @@ export class ComfyApp {
 			return workflow;
 		}
 		this.enableWorkflowViewRestore = this.ui.settings.addSetting({
-			id: "Comfy.EnableWorkflowViewRestore",
+			id: "kaonashi.EnableWorkflowViewRestore",
 			name: "Save and restore canvas position and zoom level in workflows",
 			type: "boolean",
 			defaultValue: true
@@ -413,30 +413,30 @@ export class ComfyApp {
 			});
 
 			// prevent conflict of clipspace content
-			if (!ComfyApp.clipspace_return_node) {
+			if (!kaonashiApp.clipspace_return_node) {
 				options.push({
 					content: "Copy (Clipspace)",
 					callback: (obj) => {
-						ComfyApp.copyToClipspace(this);
+						kaonashiApp.copyToClipspace(this);
 					},
 				});
 
-				if (ComfyApp.clipspace != null) {
+				if (kaonashiApp.clipspace != null) {
 					options.push({
 						content: "Paste (Clipspace)",
 						callback: () => {
-							ComfyApp.pasteFromClipspace(this);
+							kaonashiApp.pasteFromClipspace(this);
 						},
 					});
 				}
 
-				if (ComfyApp.isImageNode(this)) {
+				if (kaonashiApp.isImageNode(this)) {
 					options.push({
 						content: "Open in MaskEditor",
 						callback: (obj) => {
-							ComfyApp.copyToClipspace(this);
-							ComfyApp.clipspace_return_node = this;
-							ComfyApp.open_maskeditor();
+							kaonashiApp.copyToClipspace(this);
+							kaonashiApp.clipspace_return_node = this;
+							kaonashiApp.open_maskeditor();
 						},
 					});
 				}
@@ -903,7 +903,7 @@ export class ComfyApp {
 					// If an image node is selected, paste into it
 					if (this.canvas.current_node &&
 						this.canvas.current_node.is_selected &&
-						ComfyApp.isImageNode(this.canvas.current_node)) {
+						kaonashiApp.isImageNode(this.canvas.current_node)) {
 						imageNode = this.canvas.current_node;
 					}
 
@@ -1422,7 +1422,7 @@ export class ComfyApp {
 	 */
 	async #loadExtensions() {
 	    const extensions = await api.getExtensions();
-	    this.logging.addEntry("Comfy.App", "debug", { Extensions: extensions });
+	    this.logging.addEntry("kaonashi.App", "debug", { Extensions: extensions });
 	
 	    const extensionPromises = extensions.map(async ext => {
 	        try {
@@ -1439,7 +1439,7 @@ export class ComfyApp {
 		this.isNewUserSession = true;
 		// Store all current settings
 		const settings = Object.keys(this.ui.settings).reduce((p, n) => {
-			const v = localStorage[`Comfy.Settings.${n}`];
+			const v = localStorage[`kaonashi.Settings.${n}`];
 			if (v) {
 				try {
 					p[n] = JSON.parse(v);
@@ -1464,7 +1464,7 @@ export class ComfyApp {
 		}
 
 		this.multiUserServer = true;
-		let user = localStorage["Comfy.userId"];
+		let user = localStorage["kaonashi.userId"];
 		const users = userConfig.users ?? {};
 		if (!user || !users[user]) {
 			// This will rarely be hit so move the loading to on demand
@@ -1475,8 +1475,8 @@ export class ComfyApp {
 			this.ui.menuContainer.style.display = "";
 
 			user = userId;
-			localStorage["Comfy.userName"] = username;
-			localStorage["Comfy.userId"] = user;
+			localStorage["kaonashi.userName"] = username;
+			localStorage["kaonashi.userId"] = user;
 
 			if (created) {
 				api.user = user;
@@ -1487,10 +1487,10 @@ export class ComfyApp {
 		api.user = user;
 
 		this.ui.settings.addSetting({
-			id: "Comfy.SwitchUser",
+			id: "kaonashi.SwitchUser",
 			name: "Switch User",
 			type: (name) => {
-				let currentUser = localStorage["Comfy.userName"];
+				let currentUser = localStorage["kaonashi.userName"];
 				if (currentUser) {
 					currentUser = ` (${currentUser})`;
 				}
@@ -1504,8 +1504,8 @@ export class ComfyApp {
 						$el("button", {
 							textContent: name + (currentUser ?? ""),
 							onclick: () => {
-								delete localStorage["Comfy.userId"];
-								delete localStorage["Comfy.userName"];
+								delete localStorage["kaonashi.userId"];
+								delete localStorage["kaonashi.userName"];
 								window.location.reload();
 							},
 						}),
@@ -1550,7 +1550,7 @@ export class ComfyApp {
 		this.graph.start();
 
 		function resizeCanvas() {
-			// Limit minimal scale to 1, see https://github.com/comfyanonymous/ComfyUI/pull/845
+			// Limit minimal scale to 1, see https://github.com/kaonashianonymous/kaonashiUI/pull/845
 			const scale = Math.max(window.devicePixelRatio, 1);
 			const { width, height } = canvasEl.getBoundingClientRect();
 			canvasEl.width = Math.round(width * scale);
@@ -1637,7 +1637,7 @@ export class ComfyApp {
 	async registerNodeDef(nodeId, nodeData) {
 		const self = this;
 		const node = Object.assign(
-			function ComfyNode() {
+			function kaonashiNode() {
 				var inputs = nodeData["input"]["required"];
 				if (nodeData["input"]["optional"] != undefined) {
 					inputs = Object.assign({}, nodeData["input"]["required"], nodeData["input"]["optional"]);
@@ -1689,11 +1689,11 @@ export class ComfyApp {
 			},
 			{
 				title: nodeData.display_name || nodeData.name,
-				comfyClass: nodeData.name,
+				kaonashiClass: nodeData.name,
 				nodeData
 			}
 		);
-		node.prototype.comfyClass = nodeData.name;
+		node.prototype.kaonashiClass = nodeData.name;
 
 		this.#addNodeContextMenuHandler(node);
 		this.#addDrawBackgroundHandler(node, app);
@@ -1710,7 +1710,7 @@ export class ComfyApp {
 		// Generate list of known widgets
 		this.widgets = Object.assign(
 			{},
-			ComfyWidgets,
+			kaonashiWidgets,
 			...(await this.#invokeExtensionsAsync("getCustomWidgets")).filter(Boolean)
 		);
 
@@ -1761,7 +1761,7 @@ export class ComfyApp {
 		let seenTypes = new Set();
 
 		this.ui.dialog.show(
-			$el("div.comfy-missing-nodes", [
+			$el("div.kaonashi-missing-nodes", [
 				$el("span", { textContent: "When loading the graph, the following node types were not found: " }),
 				$el(
 					"ul",
@@ -1790,7 +1790,7 @@ export class ComfyApp {
 					: []),
 			])
 		);
-		this.logging.addEntry("Comfy.App", "warn", {
+		this.logging.addEntry("kaonashi.App", "warn", {
 			MissingNodes: missingNodeTypes,
 		});
 	}
@@ -2034,10 +2034,10 @@ export class ComfyApp {
 
 				let node_data = {
 					inputs,
-					class_type: node.comfyClass,
+					class_type: node.kaonashiClass,
 				};
 
-				if (this.ui.settings.getSettingValue("Comfy.DevMode")) {
+				if (this.ui.settings.getSettingValue("kaonashi.DevMode")) {
 					// Ignored by the backend.
 					node_data["_meta"] = {
 						title: node.title,
@@ -2277,8 +2277,8 @@ export class ComfyApp {
 	}
 
 	/**
-	 * Registers a Comfy web extension with the app
-	 * @param {ComfyExtension} extension
+	 * Registers a kaonashi web extension with the app
+	 * @param {kaonashiExtension} extension
 	 */
 	registerExtension(extension) {
 		if (!extension.name) {
@@ -2344,4 +2344,4 @@ export class ComfyApp {
 	}
 }
 
-export const app = new ComfyApp();
+export const app = new kaonashiApp();

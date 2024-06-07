@@ -10,5 +10,5 @@ module.exports = async function () {
 
 	HTMLCanvasElement.prototype.getContext = nop;
 
-	localStorage["Comfy.Settings.Comfy.Logging.Enabled"] = "false";
+	localStorage["kaonashi.Settings.kaonashi.Logging.Enabled"] = "false";
 };

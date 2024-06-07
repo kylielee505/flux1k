@@ -10,11 +10,11 @@ function roundVectorToGrid(vec) {
 }
 
 app.registerExtension({
-	name: "Comfy.SnapToGrid",
+	name: "kaonashi.SnapToGrid",
 	init() {
 		// Add setting to control grid size
 		app.ui.settings.addSetting({
-			id: "Comfy.SnapToGrid.GridSize",
+			id: "kaonashi.SnapToGrid.GridSize",
 			name: "Grid Size",
 			type: "slider",
 			attrs: {

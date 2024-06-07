@@ -1,9 +1,9 @@
 import { api } from "./api.js";
-import { ComfyDialog as _ComfyDialog } from "./ui/dialog.js";
+import { kaonashiDialog as _kaonashiDialog } from "./ui/dialog.js";
 import { toggleSwitch } from "./ui/toggleSwitch.js";
-import { ComfySettingsDialog } from "./ui/settings.js";
+import { kaonashiSettingsDialog } from "./ui/settings.js";
 
-export const ComfyDialog = _ComfyDialog;
+export const kaonashiDialog = _kaonashiDialog;
 
 /**
  * 
@@ -119,7 +119,7 @@ function dragElement(dragEl, settings) {
 
 		if (savePos) {
 			localStorage.setItem(
-				"Comfy.MenuPosition",
+				"kaonashi.MenuPosition",
 				JSON.stringify({
 					x: dragEl.offsetLeft,
 					y: dragEl.offsetTop,
@@ -129,7 +129,7 @@ function dragElement(dragEl, settings) {
 	}
 
 	function restorePos() {
-		let pos = localStorage.getItem("Comfy.MenuPosition");
+		let pos = localStorage.getItem("kaonashi.MenuPosition");
 		if (pos) {
 			pos = JSON.parse(pos);
 			newPosX = pos.x;
@@ -141,7 +141,7 @@ function dragElement(dragEl, settings) {
 
 	let savePos = undefined;
 	settings.addSetting({
-		id: "Comfy.MenuPosition",
+		id: "kaonashi.MenuPosition",
 		name: "Save menu position",
 		type: "boolean",
 		defaultValue: savePos,
@@ -168,7 +168,7 @@ function dragElement(dragEl, settings) {
 		e = e || window.event;
 		e.preventDefault();
 
-		dragEl.classList.add("comfy-menu-manual-pos");
+		dragEl.classList.add("kaonashi-menu-manual-pos");
 
 		// calculate the new cursor position:
 		posDiffX = e.clientX - posStartX;
@@ -193,7 +193,7 @@ function dragElement(dragEl, settings) {
 	}
 }
 
-class ComfyList {
+class kaonashiList {
 	#type;
 	#text;
 	#reverse;
@@ -202,7 +202,7 @@ class ComfyList {
 		this.#text = text;
 		this.#type = type || text.toLowerCase();
 		this.#reverse = reverse || false;
-		this.element = $el("div.comfy-list");
+		this.element = $el("div.kaonashi-list");
 		this.element.style.display = "none";
 	}
 
@@ -217,7 +217,7 @@ class ComfyList {
 				$el("h4", {
 					textContent: section,
 				}),
-				$el("div.comfy-list-items", [
+				$el("div.kaonashi-list-items", [
 					...(this.#reverse ? items[section].reverse() : items[section]).map((item) => {
 						// Allow items to specify a custom remove action (e.g. for interrupt current prompt)
 						const removeAction = item.remove || {
@@ -245,7 +245,7 @@ class ComfyList {
 					}),
 				]),
 			]),
-			$el("div.comfy-list-actions", [
+			$el("div.kaonashi-list-actions", [
 				$el("button", {
 					textContent: "Clear " + this.#text,
 					onclick: async () => {
@@ -287,16 +287,16 @@ class ComfyList {
 	}
 }
 
-export class ComfyUI {
+export class kaonashiUI {
 	constructor(app) {
 		this.app = app;
-		this.dialog = new ComfyDialog();
-		this.settings = new ComfySettingsDialog(app);
+		this.dialog = new kaonashiDialog();
+		this.settings = new kaonashiSettingsDialog(app);
 
 		this.batchCount = 1;
 		this.lastQueueSize = 0;
-		this.queue = new ComfyList("Queue");
-		this.history = new ComfyList("History", "history", true);
+		this.queue = new kaonashiList("Queue");
+		this.history = new kaonashiList("History", "history", true);
 
 		api.addEventListener("status", () => {
 			this.queue.update();
@@ -304,14 +304,14 @@ export class ComfyUI {
 		});
 
 		const confirmClear = this.settings.addSetting({
-			id: "Comfy.ConfirmClear",
+			id: "kaonashi.ConfirmClear",
 			name: "Require confirmation when clearing workflow",
 			type: "boolean",
 			defaultValue: true,
 		});
 
 		const promptFilename = this.settings.addSetting({
-			id: "Comfy.PromptFilename",
+			id: "kaonashi.PromptFilename",
 			name: "Prompt for filename when saving workflow",
 			type: "boolean",
 			defaultValue: true,
@@ -329,28 +329,28 @@ export class ComfyUI {
 		 * @type {string}
 		 */
 		const previewImage = this.settings.addSetting({
-			id: "Comfy.PreviewFormat",
+			id: "kaonashi.PreviewFormat",
 			name: "When displaying a preview in the image widget, convert it to a lightweight image, e.g. webp, jpeg, webp;50, etc.",
 			type: "text",
 			defaultValue: "",
 		});
 
 		this.settings.addSetting({
-			id: "Comfy.DisableSliders",
+			id: "kaonashi.DisableSliders",
 			name: "Disable sliders.",
 			type: "boolean",
 			defaultValue: false,
 		});
 
 		this.settings.addSetting({
-			id: "Comfy.DisableFloatRounding",
+			id: "kaonashi.DisableFloatRounding",
 			name: "Disable rounding floats (requires page reload).",
 			type: "boolean",
 			defaultValue: false,
 		});
 
 		this.settings.addSetting({
-			id: "Comfy.FloatRoundingPrecision",
+			id: "kaonashi.FloatRoundingPrecision",
 			name: "Decimal places [0 = auto] (requires page reload).",
 			type: "slider",
 			attrs: {
@@ -362,7 +362,7 @@ export class ComfyUI {
 		});
 
 		const fileInput = $el("input", {
-			id: "comfy-file-input",
+			id: "kaonashi-file-input",
 			type: "file",
 			accept: ".json,image/png,.latent,.safetensors,image/webp",
 			style: {display: "none"},
@@ -398,7 +398,7 @@ export class ComfyUI {
 		});
 
 		this.menuHamburger = $el(
-			"div.comfy-menu-hamburger",
+			"div.kaonashi-menu-hamburger",
 			{
 				parent: document.body,
 				onclick: () => {
@@ -409,8 +409,8 @@ export class ComfyUI {
 			[$el("div"), $el("div"), $el("div")]
 		);
 
-		this.menuContainer = $el("div.comfy-menu", { parent: document.body }, [
-			$el("div.drag-handle.comfy-menu-header", {
+		this.menuContainer = $el("div.kaonashi-menu", { parent: document.body }, [
+			$el("div.drag-handle.kaonashi-menu-header", {
 				style: {
 					overflow: "hidden",
 					position: "relative",
@@ -419,13 +419,13 @@ export class ComfyUI {
 				}
 			}, 	[
 				$el("span.drag-handle"),
-				$el("span.comfy-menu-queue-size", { $: (q) => (this.queueSize = q) }),
-				$el("div.comfy-menu-actions", [
-					$el("button.comfy-settings-btn", {
+				$el("span.kaonashi-menu-queue-size", { $: (q) => (this.queueSize = q) }),
+				$el("div.kaonashi-menu-actions", [
+					$el("button.kaonashi-settings-btn", {
 						textContent: "⚙️",
 						onclick: () => this.settings.show(),
 					}),
-					$el("button.comfy-close-menu-btn", {
+					$el("button.kaonashi-close-menu-btn", {
 						textContent: "\u00d7",
 						onclick: () => {
 							this.menuContainer.style.display = "none";
@@ -434,7 +434,7 @@ export class ComfyUI {
 					}),
 				]),
 			]),
-			$el("button.comfy-queue-btn", {
+			$el("button.kaonashi-queue-btn", {
 				id: "queue-button",
 				textContent: "Queue Prompt",
 				onclick: () => app.queuePrompt(0, this.batchCount),
@@ -497,7 +497,7 @@ export class ComfyUI {
 					autoQueueModeEl
 				])
 			]),
-			$el("div.comfy-menu-btns", [
+			$el("div.kaonashi-menu-btns", [
 				$el("button", {
 					id: "queue-front-button",
 					textContent: "Queue Front",
@@ -505,7 +505,7 @@ export class ComfyUI {
 				}),
 				$el("button", {
 					$: (b) => (this.queue.button = b),
-					id: "comfy-view-queue-button",
+					id: "kaonashi-view-queue-button",
 					textContent: "View Queue",
 					onclick: () => {
 						this.history.hide();
@@ -514,7 +514,7 @@ export class ComfyUI {
 				}),
 				$el("button", {
 					$: (b) => (this.history.button = b),
-					id: "comfy-view-history-button",
+					id: "kaonashi-view-history-button",
 					textContent: "View History",
 					onclick: () => {
 						this.queue.hide();
@@ -525,7 +525,7 @@ export class ComfyUI {
 			this.queue.element,
 			this.history.element,
 			$el("button", {
-				id: "comfy-save-button",
+				id: "kaonashi-save-button",
 				textContent: "Save",
 				onclick: () => {
 					let filename = "workflow.json";
@@ -555,7 +555,7 @@ export class ComfyUI {
 				},
 			}),
 			$el("button", {
-				id: "comfy-dev-save-api-button",
+				id: "kaonashi-dev-save-api-button",
 				textContent: "Save (API Format)",
 				style: {width: "100%", display: "none"},
 				onclick: () => {
@@ -585,15 +585,15 @@ export class ComfyUI {
 					});
 				},
 			}),
-			$el("button", {id: "comfy-load-button", textContent: "Load", onclick: () => fileInput.click()}),
+			$el("button", {id: "kaonashi-load-button", textContent: "Load", onclick: () => fileInput.click()}),
 			$el("button", {
-				id: "comfy-refresh-button",
+				id: "kaonashi-refresh-button",
 				textContent: "Refresh",
 				onclick: () => app.refreshComboInNodes()
 			}),
-			$el("button", {id: "comfy-clipspace-button", textContent: "Clipspace", onclick: () => app.openClipspace()}),
+			$el("button", {id: "kaonashi-clipspace-button", textContent: "Clipspace", onclick: () => app.openClipspace()}),
 			$el("button", {
-				id: "comfy-clear-button", textContent: "Clear", onclick: () => {
+				id: "kaonashi-clear-button", textContent: "Clear", onclick: () => {
 					if (!confirmClear.value || confirm("Clear workflow?")) {
 						app.clean();
 						app.graph.clear();
@@ -602,7 +602,7 @@ export class ComfyUI {
 				}
 			}),
 			$el("button", {
-				id: "comfy-load-default-button", textContent: "Load Default", onclick: async () => {
+				id: "kaonashi-load-default-button", textContent: "Load Default", onclick: async () => {
 					if (!confirmClear.value || confirm("Load default workflow?")) {
 						app.resetView();
 						await app.loadGraphData()
@@ -610,18 +610,18 @@ export class ComfyUI {
 				}
 			}),
 			$el("button", {
-				id: "comfy-reset-view-button", textContent: "Reset View", onclick: async () => {
+				id: "kaonashi-reset-view-button", textContent: "Reset View", onclick: async () => {
 					app.resetView();
 				}
 			}),
 		]);
 
 		const devMode = this.settings.addSetting({
-			id: "Comfy.DevMode",
+			id: "kaonashi.DevMode",
 			name: "Enable Dev mode Options",
 			type: "boolean",
 			defaultValue: false,
-			onChange: function(value) { document.getElementById("comfy-dev-save-api-button").style.display = value ? "block" : "none"},
+			onChange: function(value) { document.getElementById("kaonashi-dev-save-api-button").style.display = value ? "block" : "none"},
 		});
 
 		dragElement(this.menuContainer, this.settings);

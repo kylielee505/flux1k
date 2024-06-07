@@ -2,15 +2,15 @@ import torch
 import math
 import os
 import logging
-import comfy.utils
-import comfy.model_management
-import comfy.model_detection
-import comfy.model_patcher
-import comfy.ops
+import kaonashi.utils
+import kaonashi.model_management
+import kaonashi.model_detection
+import kaonashi.model_patcher
+import kaonashi.ops
 
-import comfy.cldm.cldm
-import comfy.t2i_adapter.adapter
-import comfy.ldm.cascade.controlnet
+import kaonashi.cldm.cldm
+import kaonashi.t2i_adapter.adapter
+import kaonashi.ldm.cascade.controlnet
 
 
 def broadcast_image_to(tensor, target_batch_size, batched_number):
@@ -43,7 +43,7 @@ class ControlBase:
         self.upscale_algorithm = 'nearest-exact'
 
         if device is None:
-            device = comfy.model_management.get_torch_device()
+            device = kaonashi.model_management.get_torch_device()
         self.device = device
         self.previous_controlnet = None
 
@@ -143,7 +143,7 @@ class ControlNet(ControlBase):
         self.control_model = control_model
         self.load_device = load_device
         if control_model is not None:
-            self.control_model_wrapped = comfy.model_patcher.ModelPatcher(self.control_model, load_device=load_device, offload_device=comfy.model_management.unet_offload_device())
+            self.control_model_wrapped = kaonashi.model_patcher.ModelPatcher(self.control_model, load_device=load_device, offload_device=kaonashi.model_management.unet_offload_device())
 
         self.global_average_pooling = global_average_pooling
         self.model_sampling_current = None
@@ -170,7 +170,7 @@ class ControlNet(ControlBase):
             if self.cond_hint is not None:
                 del self.cond_hint
             self.cond_hint = None
-            self.cond_hint = comfy.utils.common_upscale(self.cond_hint_original, x_noisy.shape[3] * self.compression_ratio, x_noisy.shape[2] * self.compression_ratio, self.upscale_algorithm, "center").to(dtype).to(self.device)
+            self.cond_hint = kaonashi.utils.common_upscale(self.cond_hint_original, x_noisy.shape[3] * self.compression_ratio, x_noisy.shape[2] * self.compression_ratio, self.upscale_algorithm, "center").to(dtype).to(self.device)
         if x_noisy.shape[0] != self.cond_hint.shape[0]:
             self.cond_hint = broadcast_image_to(self.cond_hint, x_noisy.shape[0], batched_number)
 
@@ -205,7 +205,7 @@ class ControlNet(ControlBase):
         super().cleanup()
 
 class ControlLoraOps:
-    class Linear(torch.nn.Module, comfy.ops.CastWeightBiasOp):
+    class Linear(torch.nn.Module, kaonashi.ops.CastWeightBiasOp):
         def __init__(self, in_features: int, out_features: int, bias: bool = True,
                     device=None, dtype=None) -> None:
             factory_kwargs = {'device': device, 'dtype': dtype}
@@ -218,13 +218,13 @@ class ControlLoraOps:
             self.bias = None
 
         def forward(self, input):
-            weight, bias = comfy.ops.cast_bias_weight(self, input)
+            weight, bias = kaonashi.ops.cast_bias_weight(self, input)
             if self.up is not None:
                 return torch.nn.functional.linear(input, weight + (torch.mm(self.up.flatten(start_dim=1), self.down.flatten(start_dim=1))).reshape(self.weight.shape).type(input.dtype), bias)
             else:
                 return torch.nn.functional.linear(input, weight, bias)
 
-    class Conv2d(torch.nn.Module, comfy.ops.CastWeightBiasOp):
+    class Conv2d(torch.nn.Module, kaonashi.ops.CastWeightBiasOp):
         def __init__(
             self,
             in_channels,
@@ -258,7 +258,7 @@ class ControlLoraOps:
 
 
         def forward(self, input):
-            weight, bias = comfy.ops.cast_bias_weight(self, input)
+            weight, bias = kaonashi.ops.cast_bias_weight(self, input)
             if self.up is not None:
                 return torch.nn.functional.conv2d(input, weight + (torch.mm(self.up.flatten(start_dim=1), self.down.flatten(start_dim=1))).reshape(self.weight.shape).type(input.dtype), bias, self.stride, self.padding, self.dilation, self.groups)
             else:
@@ -279,17 +279,17 @@ class ControlLora(ControlNet):
         self.manual_cast_dtype = model.manual_cast_dtype
         dtype = model.get_dtype()
         if self.manual_cast_dtype is None:
-            class control_lora_ops(ControlLoraOps, comfy.ops.disable_weight_init):
+            class control_lora_ops(ControlLoraOps, kaonashi.ops.disable_weight_init):
                 pass
         else:
-            class control_lora_ops(ControlLoraOps, comfy.ops.manual_cast):
+            class control_lora_ops(ControlLoraOps, kaonashi.ops.manual_cast):
                 pass
             dtype = self.manual_cast_dtype
 
         controlnet_config["operations"] = control_lora_ops
         controlnet_config["dtype"] = dtype
-        self.control_model = comfy.cldm.cldm.ControlNet(**controlnet_config)
-        self.control_model.to(comfy.model_management.get_torch_device())
+        self.control_model = kaonashi.cldm.cldm.ControlNet(**controlnet_config)
+        self.control_model.to(kaonashi.model_management.get_torch_device())
         diffusion_model = model.diffusion_model
         sd = diffusion_model.state_dict()
         cm = self.control_model.state_dict()
@@ -297,13 +297,13 @@ class ControlLora(ControlNet):
         for k in sd:
             weight = sd[k]
             try:
-                comfy.utils.set_attr_param(self.control_model, k, weight)
+                kaonashi.utils.set_attr_param(self.control_model, k, weight)
             except:
                 pass
 
         for k in self.control_weights:
             if k not in {"lora_controlnet"}:
-                comfy.utils.set_attr_param(self.control_model, k, self.control_weights[k].to(dtype).to(comfy.model_management.get_torch_device()))
+                kaonashi.utils.set_attr_param(self.control_model, k, self.control_weights[k].to(dtype).to(kaonashi.model_management.get_torch_device()))
 
     def copy(self):
         c = ControlLora(self.control_weights, global_average_pooling=self.global_average_pooling)
@@ -320,10 +320,10 @@ class ControlLora(ControlNet):
         return out
 
     def inference_memory_requirements(self, dtype):
-        return comfy.utils.calculate_parameters(self.control_weights) * comfy.model_management.dtype_size(dtype) + ControlBase.inference_memory_requirements(self, dtype)
+        return kaonashi.utils.calculate_parameters(self.control_weights) * kaonashi.model_management.dtype_size(dtype) + ControlBase.inference_memory_requirements(self, dtype)
 
 def load_controlnet(ckpt_path, model=None):
-    controlnet_data = comfy.utils.load_torch_file(ckpt_path, safe_load=True)
+    controlnet_data = kaonashi.utils.load_torch_file(ckpt_path, safe_load=True)
     if "lora_controlnet" in controlnet_data:
         return ControlLora(controlnet_data)
 
@@ -331,8 +331,8 @@ def load_controlnet(ckpt_path, model=None):
     supported_inference_dtypes = None
 
     if "controlnet_cond_embedding.conv_in.weight" in controlnet_data: #diffusers format
-        controlnet_config = comfy.model_detection.unet_config_from_diffusers_unet(controlnet_data)
-        diffusers_keys = comfy.utils.unet_to_diffusers(controlnet_config)
+        controlnet_config = kaonashi.model_detection.unet_config_from_diffusers_unet(controlnet_data)
+        diffusers_keys = kaonashi.utils.unet_to_diffusers(controlnet_config)
         diffusers_keys["controlnet_mid_block.weight"] = "middle_block_out.0.weight"
         diffusers_keys["controlnet_mid_block.bias"] = "middle_block_out.0.bias"
 
@@ -391,28 +391,28 @@ def load_controlnet(ckpt_path, model=None):
         return net
 
     if controlnet_config is None:
-        model_config = comfy.model_detection.model_config_from_unet(controlnet_data, prefix, True)
+        model_config = kaonashi.model_detection.model_config_from_unet(controlnet_data, prefix, True)
         supported_inference_dtypes = model_config.supported_inference_dtypes
         controlnet_config = model_config.unet_config
 
-    load_device = comfy.model_management.get_torch_device()
+    load_device = kaonashi.model_management.get_torch_device()
     if supported_inference_dtypes is None:
-        unet_dtype = comfy.model_management.unet_dtype()
+        unet_dtype = kaonashi.model_management.unet_dtype()
     else:
-        unet_dtype = comfy.model_management.unet_dtype(supported_dtypes=supported_inference_dtypes)
+        unet_dtype = kaonashi.model_management.unet_dtype(supported_dtypes=supported_inference_dtypes)
 
-    manual_cast_dtype = comfy.model_management.unet_manual_cast(unet_dtype, load_device)
+    manual_cast_dtype = kaonashi.model_management.unet_manual_cast(unet_dtype, load_device)
     if manual_cast_dtype is not None:
-        controlnet_config["operations"] = comfy.ops.manual_cast
+        controlnet_config["operations"] = kaonashi.ops.manual_cast
     controlnet_config["dtype"] = unet_dtype
     controlnet_config.pop("out_channels")
     controlnet_config["hint_channels"] = controlnet_data["{}input_hint_block.0.weight".format(prefix)].shape[1]
-    control_model = comfy.cldm.cldm.ControlNet(**controlnet_config)
+    control_model = kaonashi.cldm.cldm.ControlNet(**controlnet_config)
 
     if pth:
         if 'difference' in controlnet_data:
             if model is not None:
-                comfy.model_management.load_models_gpu([model])
+                kaonashi.model_management.load_models_gpu([model])
                 model_sd = model.model_state_dict()
                 for x in controlnet_data:
                     c_m = "control_model."
@@ -479,7 +479,7 @@ class T2IAdapter(ControlBase):
             self.control_input = None
             self.cond_hint = None
             width, height = self.scale_image_to(x_noisy.shape[3] * self.compression_ratio, x_noisy.shape[2] * self.compression_ratio)
-            self.cond_hint = comfy.utils.common_upscale(self.cond_hint_original, width, height, self.upscale_algorithm, "center").float().to(self.device)
+            self.cond_hint = kaonashi.utils.common_upscale(self.cond_hint_original, width, height, self.upscale_algorithm, "center").float().to(self.device)
             if self.channels_in == 1 and self.cond_hint.shape[1] > 1:
                 self.cond_hint = torch.mean(self.cond_hint, 1, keepdim=True)
         if x_noisy.shape[0] != self.cond_hint.shape[0]:
@@ -515,12 +515,12 @@ def load_t2i_adapter(t2i_data):
                 prefix_replace["adapter.body.{}.resnets.{}.".format(i, j)] = "body.{}.".format(i * 2 + j)
             prefix_replace["adapter.body.{}.".format(i, j)] = "body.{}.".format(i * 2)
         prefix_replace["adapter."] = ""
-        t2i_data = comfy.utils.state_dict_prefix_replace(t2i_data, prefix_replace)
+        t2i_data = kaonashi.utils.state_dict_prefix_replace(t2i_data, prefix_replace)
     keys = t2i_data.keys()
 
     if "body.0.in_conv.weight" in keys:
         cin = t2i_data['body.0.in_conv.weight'].shape[1]
-        model_ad = comfy.t2i_adapter.adapter.Adapter_light(cin=cin, channels=[320, 640, 1280, 1280], nums_rb=4)
+        model_ad = kaonashi.t2i_adapter.adapter.Adapter_light(cin=cin, channels=[320, 640, 1280, 1280], nums_rb=4)
     elif 'conv_in.weight' in keys:
         cin = t2i_data['conv_in.weight'].shape[1]
         channel = t2i_data['conv_in.weight'].shape[0]
@@ -532,13 +532,13 @@ def load_t2i_adapter(t2i_data):
         xl = False
         if cin == 256 or cin == 768:
             xl = True
-        model_ad = comfy.t2i_adapter.adapter.Adapter(cin=cin, channels=[channel, channel*2, channel*4, channel*4][:4], nums_rb=2, ksize=ksize, sk=True, use_conv=use_conv, xl=xl)
+        model_ad = kaonashi.t2i_adapter.adapter.Adapter(cin=cin, channels=[channel, channel*2, channel*4, channel*4][:4], nums_rb=2, ksize=ksize, sk=True, use_conv=use_conv, xl=xl)
     elif "backbone.0.0.weight" in keys:
-        model_ad = comfy.ldm.cascade.controlnet.ControlNet(c_in=t2i_data['backbone.0.0.weight'].shape[1], proj_blocks=[0, 4, 8, 12, 51, 55, 59, 63])
+        model_ad = kaonashi.ldm.cascade.controlnet.ControlNet(c_in=t2i_data['backbone.0.0.weight'].shape[1], proj_blocks=[0, 4, 8, 12, 51, 55, 59, 63])
         compression_ratio = 32
         upscale_algorithm = 'bilinear'
     elif "backbone.10.blocks.0.weight" in keys:
-        model_ad = comfy.ldm.cascade.controlnet.ControlNet(c_in=t2i_data['backbone.0.weight'].shape[1], bottleneck_mode="large", proj_blocks=[0, 4, 8, 12, 51, 55, 59, 63])
+        model_ad = kaonashi.ldm.cascade.controlnet.ControlNet(c_in=t2i_data['backbone.0.weight'].shape[1], bottleneck_mode="large", proj_blocks=[0, 4, 8, 12, 51, 55, 59, 63])
         compression_ratio = 1
         upscale_algorithm = 'nearest-exact'
     else:

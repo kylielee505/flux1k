@@ -21,9 +21,9 @@ from aiohttp import web
 import logging
 
 import mimetypes
-from comfy.cli_args import args
-import comfy.utils
-import comfy.model_management
+from kaonashi.cli_args import args
+import kaonashi.utils
+import kaonashi.model_management
 
 from app.user_manager import UserManager
 
@@ -349,7 +349,7 @@ class PromptServer():
             safetensors_path = folder_paths.get_full_path(folder_name, filename)
             if safetensors_path is None:
                 return web.Response(status=404)
-            out = comfy.utils.safetensors_header(safetensors_path, max_size=1024*1024)
+            out = kaonashi.utils.safetensors_header(safetensors_path, max_size=1024*1024)
             if out is None:
                 return web.Response(status=404)
             dt = json.loads(out)
@@ -359,10 +359,10 @@ class PromptServer():
 
         @routes.get("/system_stats")
         async def get_queue(request):
-            device = comfy.model_management.get_torch_device()
-            device_name = comfy.model_management.get_torch_device_name(device)
-            vram_total, torch_vram_total = comfy.model_management.get_total_memory(device, torch_total_too=True)
-            vram_free, torch_vram_free = comfy.model_management.get_free_memory(device, torch_free_too=True)
+            device = kaonashi.model_management.get_torch_device()
+            device_name = kaonashi.model_management.get_torch_device_name(device)
+            vram_total, torch_vram_total = kaonashi.model_management.get_total_memory(device, torch_total_too=True)
+            vram_free, torch_vram_free = kaonashi.model_management.get_free_memory(device, torch_free_too=True)
             system_stats = {
                 "system": {
                     "os": os.name,

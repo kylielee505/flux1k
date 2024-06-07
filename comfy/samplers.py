@@ -2,10 +2,10 @@ from .k_diffusion import sampling as k_diffusion_sampling
 from .extra_samplers import uni_pc
 import torch
 import collections
-from comfy import model_management
+from kaonashi import model_management
 import math
 import logging
-import comfy.sampler_helpers
+import kaonashi.sampler_helpers
 
 def get_area_and_mult(conds, x_in, timestep_in):
     area = (x_in.shape[2], x_in.shape[3], 0, 0)
@@ -228,7 +228,7 @@ def calc_cond_batch(model, conds, x_in, timestep, model_options):
     return out_conds
 
 def calc_cond_uncond_batch(model, cond, uncond, x_in, timestep, model_options): #TODO: remove
-    logging.warning("WARNING: The comfy.samplers.calc_cond_uncond_batch function is deprecated please use the calc_cond_batch one instead.")
+    logging.warning("WARNING: The kaonashi.samplers.calc_cond_uncond_batch function is deprecated please use the calc_cond_batch one instead.")
     return tuple(calc_cond_batch(model, [cond, uncond], x_in, timestep, model_options))
 
 def cfg_function(model, cond_pred, uncond_pred, cond_scale, x, timestep, model_options={}, cond=None, uncond=None):
@@ -610,7 +610,7 @@ class CFGGuider:
 
     def inner_set_conds(self, conds):
         for k in conds:
-            self.original_conds[k] = comfy.sampler_helpers.convert_cond(conds[k])
+            self.original_conds[k] = kaonashi.sampler_helpers.convert_cond(conds[k])
 
     def __call__(self, *args, **kwargs):
         return self.predict_noise(*args, **kwargs)
@@ -637,11 +637,11 @@ class CFGGuider:
         for k in self.original_conds:
             self.conds[k] = list(map(lambda a: a.copy(), self.original_conds[k]))
 
-        self.inner_model, self.conds, self.loaded_models = comfy.sampler_helpers.prepare_sampling(self.model_patcher, noise.shape, self.conds)
+        self.inner_model, self.conds, self.loaded_models = kaonashi.sampler_helpers.prepare_sampling(self.model_patcher, noise.shape, self.conds)
         device = self.model_patcher.load_device
 
         if denoise_mask is not None:
-            denoise_mask = comfy.sampler_helpers.prepare_mask(denoise_mask, noise.shape, device)
+            denoise_mask = kaonashi.sampler_helpers.prepare_mask(denoise_mask, noise.shape, device)
 
         noise = noise.to(device)
         latent_image = latent_image.to(device)
@@ -649,7 +649,7 @@ class CFGGuider:
 
         output = self.inner_sample(noise, latent_image, device, sampler, sigmas, denoise_mask, callback, disable_pbar, seed)
 
-        comfy.sampler_helpers.cleanup_models(self.conds, self.loaded_models)
+        kaonashi.sampler_helpers.cleanup_models(self.conds, self.loaded_models)
         del self.inner_model
         del self.conds
         del self.loaded_models

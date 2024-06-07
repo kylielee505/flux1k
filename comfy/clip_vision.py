@@ -4,11 +4,11 @@ import torch
 import json
 import logging
 
-import comfy.ops
-import comfy.model_patcher
-import comfy.model_management
-import comfy.utils
-import comfy.clip_model
+import kaonashi.ops
+import kaonashi.model_patcher
+import kaonashi.model_management
+import kaonashi.utils
+import kaonashi.clip_model
 
 class Output:
     def __getitem__(self, key):
@@ -34,13 +34,13 @@ class ClipVisionModel():
         with open(json_config) as f:
             config = json.load(f)
 
-        self.load_device = comfy.model_management.text_encoder_device()
-        offload_device = comfy.model_management.text_encoder_offload_device()
-        self.dtype = comfy.model_management.text_encoder_dtype(self.load_device)
-        self.model = comfy.clip_model.CLIPVisionModelProjection(config, self.dtype, offload_device, comfy.ops.manual_cast)
+        self.load_device = kaonashi.model_management.text_encoder_device()
+        offload_device = kaonashi.model_management.text_encoder_offload_device()
+        self.dtype = kaonashi.model_management.text_encoder_dtype(self.load_device)
+        self.model = kaonashi.clip_model.CLIPVisionModelProjection(config, self.dtype, offload_device, kaonashi.ops.manual_cast)
         self.model.eval()
 
-        self.patcher = comfy.model_patcher.ModelPatcher(self.model, load_device=self.load_device, offload_device=offload_device)
+        self.patcher = kaonashi.model_patcher.ModelPatcher(self.model, load_device=self.load_device, offload_device=offload_device)
 
     def load_sd(self, sd):
         return self.model.load_state_dict(sd, strict=False)
@@ -49,14 +49,14 @@ class ClipVisionModel():
         return self.model.state_dict()
 
     def encode_image(self, image):
-        comfy.model_management.load_model_gpu(self.patcher)
+        kaonashi.model_management.load_model_gpu(self.patcher)
         pixel_values = clip_preprocess(image.to(self.load_device)).float()
         out = self.model(pixel_values=pixel_values, intermediate_output=-2)
 
         outputs = Output()
-        outputs["last_hidden_state"] = out[0].to(comfy.model_management.intermediate_device())
-        outputs["image_embeds"] = out[2].to(comfy.model_management.intermediate_device())
-        outputs["penultimate_hidden_states"] = out[1].to(comfy.model_management.intermediate_device())
+        outputs["last_hidden_state"] = out[0].to(kaonashi.model_management.intermediate_device())
+        outputs["image_embeds"] = out[2].to(kaonashi.model_management.intermediate_device())
+        outputs["penultimate_hidden_states"] = out[1].to(kaonashi.model_management.intermediate_device())
         return outputs
 
 def convert_to_transformers(sd, prefix):

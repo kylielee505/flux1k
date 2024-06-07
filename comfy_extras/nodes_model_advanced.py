@@ -1,10 +1,10 @@
 import folder_paths
-import comfy.sd
-import comfy.model_sampling
-import comfy.latent_formats
+import kaonashi.sd
+import kaonashi.model_sampling
+import kaonashi.latent_formats
 import torch
 
-class LCM(comfy.model_sampling.EPS):
+class LCM(kaonashi.model_sampling.EPS):
     def calculate_denoised(self, sigma, model_output, model_input):
         timestep = self.timestep(sigma).view(sigma.shape[:1] + (1,) * (model_output.ndim - 1))
         sigma = sigma.view(sigma.shape[:1] + (1,) * (model_output.ndim - 1))
@@ -18,11 +18,11 @@ class LCM(comfy.model_sampling.EPS):
 
         return c_out * x0 + c_skip * model_input
 
-class X0(comfy.model_sampling.EPS):
+class X0(kaonashi.model_sampling.EPS):
     def calculate_denoised(self, sigma, model_output, model_input):
         return model_output
 
-class ModelSamplingDiscreteDistilled(comfy.model_sampling.ModelSamplingDiscrete):
+class ModelSamplingDiscreteDistilled(kaonashi.model_sampling.ModelSamplingDiscrete):
     original_timesteps = 50
 
     def __init__(self, model_config=None):
@@ -85,11 +85,11 @@ class ModelSamplingDiscrete:
     def patch(self, model, sampling, zsnr):
         m = model.clone()
 
-        sampling_base = comfy.model_sampling.ModelSamplingDiscrete
+        sampling_base = kaonashi.model_sampling.ModelSamplingDiscrete
         if sampling == "eps":
-            sampling_type = comfy.model_sampling.EPS
+            sampling_type = kaonashi.model_sampling.EPS
         elif sampling == "v_prediction":
-            sampling_type = comfy.model_sampling.V_PREDICTION
+            sampling_type = kaonashi.model_sampling.V_PREDICTION
         elif sampling == "lcm":
             sampling_type = LCM
             sampling_base = ModelSamplingDiscreteDistilled
@@ -121,8 +121,8 @@ class ModelSamplingStableCascade:
     def patch(self, model, shift):
         m = model.clone()
 
-        sampling_base = comfy.model_sampling.StableCascadeSampling
-        sampling_type = comfy.model_sampling.EPS
+        sampling_base = kaonashi.model_sampling.StableCascadeSampling
+        sampling_type = kaonashi.model_sampling.EPS
 
         class ModelSamplingAdvanced(sampling_base, sampling_type):
             pass
@@ -152,15 +152,15 @@ class ModelSamplingContinuousEDM:
         latent_format = None
         sigma_data = 1.0
         if sampling == "eps":
-            sampling_type = comfy.model_sampling.EPS
+            sampling_type = kaonashi.model_sampling.EPS
         elif sampling == "v_prediction":
-            sampling_type = comfy.model_sampling.V_PREDICTION
+            sampling_type = kaonashi.model_sampling.V_PREDICTION
         elif sampling == "edm_playground_v2.5":
-            sampling_type = comfy.model_sampling.EDM
+            sampling_type = kaonashi.model_sampling.EDM
             sigma_data = 0.5
-            latent_format = comfy.latent_formats.SDXL_Playground_2_5()
+            latent_format = kaonashi.latent_formats.SDXL_Playground_2_5()
 
-        class ModelSamplingAdvanced(comfy.model_sampling.ModelSamplingContinuousEDM, sampling_type):
+        class ModelSamplingAdvanced(kaonashi.model_sampling.ModelSamplingContinuousEDM, sampling_type):
             pass
 
         model_sampling = ModelSamplingAdvanced(model.model.model_config)

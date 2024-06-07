@@ -1,5 +1,5 @@
-import comfy.samplers
-import comfy.utils
+import kaonashi.samplers
+import kaonashi.utils
 import torch
 import numpy as np
 from tqdm.auto import trange, tqdm
@@ -27,7 +27,7 @@ def sample_lcm_upscale(model, x, sigmas, extra_args=None, callback=None, disable
 
         x = denoised
         if i < len(upscales):
-            x = comfy.utils.common_upscale(x, round(orig_shape[-1] * upscales[i]), round(orig_shape[-2] * upscales[i]), upscale_method, "disabled")
+            x = kaonashi.utils.common_upscale(x, round(orig_shape[-1] * upscales[i]), round(orig_shape[-2] * upscales[i]), upscale_method, "disabled")
 
         if sigmas[i + 1] > 0:
             x += sigmas[i + 1] * torch.randn_like(x)
@@ -53,7 +53,7 @@ class SamplerLCMUpscale:
     def get_sampler(self, scale_ratio, scale_steps, upscale_method):
         if scale_steps < 0:
             scale_steps = None
-        sampler = comfy.samplers.KSAMPLER(sample_lcm_upscale, extra_options={"total_upscale": scale_ratio, "upscale_steps": scale_steps, "upscale_method": upscale_method})
+        sampler = kaonashi.samplers.KSAMPLER(sample_lcm_upscale, extra_options={"total_upscale": scale_ratio, "upscale_steps": scale_steps, "upscale_method": upscale_method})
         return (sampler, )
 
 NODE_CLASS_MAPPINGS = {

@@ -1,13 +1,13 @@
 import torch
 import logging
-from comfy.ldm.modules.diffusionmodules.openaimodel import UNetModel, Timestep
-from comfy.ldm.cascade.stage_c import StageC
-from comfy.ldm.cascade.stage_b import StageB
-from comfy.ldm.modules.encoders.noise_aug_modules import CLIPEmbeddingNoiseAugmentation
-from comfy.ldm.modules.diffusionmodules.upscaling import ImageConcatWithNoiseAugmentation
-import comfy.model_management
-import comfy.conds
-import comfy.ops
+from kaonashi.ldm.modules.diffusionmodules.openaimodel import UNetModel, Timestep
+from kaonashi.ldm.cascade.stage_c import StageC
+from kaonashi.ldm.cascade.stage_b import StageB
+from kaonashi.ldm.modules.encoders.noise_aug_modules import CLIPEmbeddingNoiseAugmentation
+from kaonashi.ldm.modules.diffusionmodules.upscaling import ImageConcatWithNoiseAugmentation
+import kaonashi.model_management
+import kaonashi.conds
+import kaonashi.ops
 from enum import Enum
 from . import utils
 
@@ -19,7 +19,7 @@ class ModelType(Enum):
     EDM = 5
 
 
-from comfy.model_sampling import EPS, V_PREDICTION, EDM, ModelSamplingDiscrete, ModelSamplingContinuousEDM, StableCascadeSampling
+from kaonashi.model_sampling import EPS, V_PREDICTION, EDM, ModelSamplingDiscrete, ModelSamplingContinuousEDM, StableCascadeSampling
 
 
 def model_sampling(model_config, model_type):
@@ -56,9 +56,9 @@ class BaseModel(torch.nn.Module):
 
         if not unet_config.get("disable_unet_model_creation", False):
             if self.manual_cast_dtype is not None:
-                operations = comfy.ops.manual_cast
+                operations = kaonashi.ops.manual_cast
             else:
-                operations = comfy.ops.disable_weight_init
+                operations = kaonashi.ops.disable_weight_init
             self.diffusion_model = unet_model(**unet_config, device=device, operations=operations)
         self.model_type = model_type
         self.model_sampling = model_sampling(model_config, model_type)
@@ -146,23 +146,23 @@ class BaseModel(torch.nn.Module):
                     elif ck == "masked_image":
                         cond_concat.append(self.blank_inpaint_image_like(noise))
             data = torch.cat(cond_concat, dim=1)
-            out['c_concat'] = comfy.conds.CONDNoiseShape(data)
+            out['c_concat'] = kaonashi.conds.CONDNoiseShape(data)
 
         adm = self.encode_adm(**kwargs)
         if adm is not None:
-            out['y'] = comfy.conds.CONDRegular(adm)
+            out['y'] = kaonashi.conds.CONDRegular(adm)
 
         cross_attn = kwargs.get("cross_attn", None)
         if cross_attn is not None:
-            out['c_crossattn'] = comfy.conds.CONDCrossAttn(cross_attn)
+            out['c_crossattn'] = kaonashi.conds.CONDCrossAttn(cross_attn)
 
         cross_attn_cnet = kwargs.get("cross_attn_controlnet", None)
         if cross_attn_cnet is not None:
-            out['crossattn_controlnet'] = comfy.conds.CONDCrossAttn(cross_attn_cnet)
+            out['crossattn_controlnet'] = kaonashi.conds.CONDCrossAttn(cross_attn_cnet)
 
         c_concat = kwargs.get("noise_concat", None)
         if c_concat is not None:
-            out['c_concat'] = comfy.conds.CONDNoiseShape(c_concat)
+            out['c_concat'] = kaonashi.conds.CONDNoiseShape(c_concat)
 
         return out
 
@@ -225,13 +225,13 @@ class BaseModel(torch.nn.Module):
         self.blank_inpaint_image_like = blank_inpaint_image_like
 
     def memory_required(self, input_shape):
-        if comfy.model_management.xformers_enabled() or comfy.model_management.pytorch_attention_flash_attention():
+        if kaonashi.model_management.xformers_enabled() or kaonashi.model_management.pytorch_attention_flash_attention():
             dtype = self.get_dtype()
             if self.manual_cast_dtype is not None:
                 dtype = self.manual_cast_dtype
             #TODO: this needs to be tweaked
             area = input_shape[0] * input_shape[2] * input_shape[3]
-            return (area * comfy.model_management.dtype_size(dtype) / 50) * (1024 * 1024)
+            return (area * kaonashi.model_management.dtype_size(dtype) / 50) * (1024 * 1024)
         else:
             #TODO: this formula might be too aggressive since I tweaked the sub-quad and split algorithms to use less memory.
             area = input_shape[0] * input_shape[2] * input_shape[3]
@@ -355,7 +355,7 @@ class SVD_img2vid(BaseModel):
         out = {}
         adm = self.encode_adm(**kwargs)
         if adm is not None:
-            out['y'] = comfy.conds.CONDRegular(adm)
+            out['y'] = kaonashi.conds.CONDRegular(adm)
 
         latent_image = kwargs.get("concat_latent_image", None)
         noise = kwargs.get("noise", None)
@@ -369,16 +369,16 @@ class SVD_img2vid(BaseModel):
 
         latent_image = utils.resize_to_batch_size(latent_image, noise.shape[0])
 
-        out['c_concat'] = comfy.conds.CONDNoiseShape(latent_image)
+        out['c_concat'] = kaonashi.conds.CONDNoiseShape(latent_image)
 
         cross_attn = kwargs.get("cross_attn", None)
         if cross_attn is not None:
-            out['c_crossattn'] = comfy.conds.CONDCrossAttn(cross_attn)
+            out['c_crossattn'] = kaonashi.conds.CONDCrossAttn(cross_attn)
 
         if "time_conditioning" in kwargs:
-            out["time_context"] = comfy.conds.CONDCrossAttn(kwargs["time_conditioning"])
+            out["time_context"] = kaonashi.conds.CONDCrossAttn(kwargs["time_conditioning"])
 
-        out['num_video_frames'] = comfy.conds.CONDConstant(noise.shape[0])
+        out['num_video_frames'] = kaonashi.conds.CONDConstant(noise.shape[0])
         return out
 
 class SV3D_u(SVD_img2vid):
@@ -414,7 +414,7 @@ class SV3D_p(SVD_img2vid):
 class Stable_Zero123(BaseModel):
     def __init__(self, model_config, model_type=ModelType.EPS, device=None, cc_projection_weight=None, cc_projection_bias=None):
         super().__init__(model_config, model_type, device=device)
-        self.cc_projection = comfy.ops.manual_cast.Linear(cc_projection_weight.shape[1], cc_projection_weight.shape[0], dtype=self.get_dtype(), device=device)
+        self.cc_projection = kaonashi.ops.manual_cast.Linear(cc_projection_weight.shape[1], cc_projection_weight.shape[0], dtype=self.get_dtype(), device=device)
         self.cc_projection.weight.copy_(cc_projection_weight)
         self.cc_projection.bias.copy_(cc_projection_bias)
 
@@ -432,13 +432,13 @@ class Stable_Zero123(BaseModel):
 
         latent_image = utils.resize_to_batch_size(latent_image, noise.shape[0])
 
-        out['c_concat'] = comfy.conds.CONDNoiseShape(latent_image)
+        out['c_concat'] = kaonashi.conds.CONDNoiseShape(latent_image)
 
         cross_attn = kwargs.get("cross_attn", None)
         if cross_attn is not None:
             if cross_attn.shape[-1] != 768:
                 cross_attn = self.cc_projection(cross_attn)
-            out['c_crossattn'] = comfy.conds.CONDCrossAttn(cross_attn)
+            out['c_crossattn'] = kaonashi.conds.CONDCrossAttn(cross_attn)
         return out
 
 class SD_X4Upscaler(BaseModel):
@@ -469,8 +469,8 @@ class SD_X4Upscaler(BaseModel):
 
         image = utils.resize_to_batch_size(image, noise.shape[0])
 
-        out['c_concat'] = comfy.conds.CONDNoiseShape(image)
-        out['y'] = comfy.conds.CONDRegular(noise_level)
+        out['c_concat'] = kaonashi.conds.CONDNoiseShape(image)
+        out['y'] = kaonashi.conds.CONDRegular(noise_level)
         return out
 
 class IP2P:
@@ -489,10 +489,10 @@ class IP2P:
 
         image = utils.resize_to_batch_size(image, noise.shape[0])
 
-        out['c_concat'] = comfy.conds.CONDNoiseShape(self.process_ip2p_image_in(image))
+        out['c_concat'] = kaonashi.conds.CONDNoiseShape(self.process_ip2p_image_in(image))
         adm = self.encode_adm(**kwargs)
         if adm is not None:
-            out['y'] = comfy.conds.CONDRegular(adm)
+            out['y'] = kaonashi.conds.CONDRegular(adm)
         return out
 
 class SD15_instructpix2pix(IP2P, BaseModel):
@@ -504,7 +504,7 @@ class SDXL_instructpix2pix(IP2P, SDXL):
     def __init__(self, model_config, model_type=ModelType.EPS, device=None):
         super().__init__(model_config, model_type, device=device)
         if model_type == ModelType.V_PREDICTION_EDM:
-            self.process_ip2p_image_in = lambda image: comfy.latent_formats.SDXL().process_in(image) #cosxl ip2p
+            self.process_ip2p_image_in = lambda image: kaonashi.latent_formats.SDXL().process_in(image) #cosxl ip2p
         else:
             self.process_ip2p_image_in = lambda image: image #diffusers ip2p
 
@@ -518,7 +518,7 @@ class StableCascade_C(BaseModel):
         out = {}
         clip_text_pooled = kwargs["pooled_output"]
         if clip_text_pooled is not None:
-            out['clip_text_pooled'] = comfy.conds.CONDRegular(clip_text_pooled)
+            out['clip_text_pooled'] = kaonashi.conds.CONDRegular(clip_text_pooled)
 
         if "unclip_conditioning" in kwargs:
             embeds = []
@@ -528,13 +528,13 @@ class StableCascade_C(BaseModel):
             clip_img = torch.cat(embeds, dim=1)
         else:
             clip_img = torch.zeros((1, 1, 768))
-        out["clip_img"] = comfy.conds.CONDRegular(clip_img)
-        out["sca"] = comfy.conds.CONDRegular(torch.zeros((1,)))
-        out["crp"] = comfy.conds.CONDRegular(torch.zeros((1,)))
+        out["clip_img"] = kaonashi.conds.CONDRegular(clip_img)
+        out["sca"] = kaonashi.conds.CONDRegular(torch.zeros((1,)))
+        out["crp"] = kaonashi.conds.CONDRegular(torch.zeros((1,)))
 
         cross_attn = kwargs.get("cross_attn", None)
         if cross_attn is not None:
-            out['clip_text'] = comfy.conds.CONDCrossAttn(cross_attn)
+            out['clip_text'] = kaonashi.conds.CONDCrossAttn(cross_attn)
         return out
 
 
@@ -549,11 +549,11 @@ class StableCascade_B(BaseModel):
 
         clip_text_pooled = kwargs["pooled_output"]
         if clip_text_pooled is not None:
-            out['clip'] = comfy.conds.CONDRegular(clip_text_pooled)
+            out['clip'] = kaonashi.conds.CONDRegular(clip_text_pooled)
 
         #size of prior doesn't really matter if zeros because it gets resized but I still want it to get batched
         prior = kwargs.get("stable_cascade_prior", torch.zeros((1, 16, (noise.shape[2] * 4) // 42, (noise.shape[3] * 4) // 42), dtype=noise.dtype, layout=noise.layout, device=noise.device))
 
-        out["effnet"] = comfy.conds.CONDRegular(prior)
-        out["sca"] = comfy.conds.CONDRegular(torch.zeros((1,)))
+        out["effnet"] = kaonashi.conds.CONDRegular(prior)
+        out["sca"] = kaonashi.conds.CONDRegular(torch.zeros((1,)))
         return out

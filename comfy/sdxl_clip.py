@@ -1,4 +1,4 @@
-from comfy import sd1_clip
+from kaonashi import sd1_clip
 import torch
 import os
 

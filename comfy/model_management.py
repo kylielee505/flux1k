@@ -1,7 +1,7 @@
 import psutil
 import logging
 from enum import Enum
-from comfy.cli_args import args
+from kaonashi.cli_args import args
 import torch
 import sys
 import platform
@@ -894,7 +894,7 @@ def unload_all_models():
 
 
 def resolve_lowvram_weight(weight, model, key): #TODO: remove
-    print("WARNING: The comfy.model_management.resolve_lowvram_weight function will be removed soon, please stop using it.")
+    print("WARNING: The kaonashi.model_management.resolve_lowvram_weight function will be removed soon, please stop using it.")
     return weight
 
 #TODO: might be cleaner to put this somewhere else

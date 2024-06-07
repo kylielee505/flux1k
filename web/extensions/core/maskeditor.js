@@ -1,6 +1,6 @@
 import { app } from "../../scripts/app.js";
-import { ComfyDialog, $el } from "../../scripts/ui.js";
-import { ComfyApp } from "../../scripts/app.js";
+import { kaonashiDialog, $el } from "../../scripts/ui.js";
+import { kaonashiApp } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js"
 import { ClipspaceDialog } from "./clipspace.js";
 
@@ -53,11 +53,11 @@ async function uploadMask(filepath, formData) {
 		console.error('Error:', error);
 	});
 
-	ComfyApp.clipspace.imgs[ComfyApp.clipspace['selectedIndex']] = new Image();
-	ComfyApp.clipspace.imgs[ComfyApp.clipspace['selectedIndex']].src = api.apiURL("/view?" + new URLSearchParams(filepath).toString() + app.getPreviewFormatParam() + app.getRandParam());
+	kaonashiApp.clipspace.imgs[kaonashiApp.clipspace['selectedIndex']] = new Image();
+	kaonashiApp.clipspace.imgs[kaonashiApp.clipspace['selectedIndex']].src = api.apiURL("/view?" + new URLSearchParams(filepath).toString() + app.getPreviewFormatParam() + app.getRandParam());
 
-	if(ComfyApp.clipspace.images)
-		ComfyApp.clipspace.images[ComfyApp.clipspace['selectedIndex']] = filepath;
+	if(kaonashiApp.clipspace.images)
+		kaonashiApp.clipspace.images[kaonashiApp.clipspace['selectedIndex']] = filepath;
 
 	ClipspaceDialog.invalidatePreview();
 }
@@ -83,7 +83,7 @@ function prepare_mask(image, maskCanvas, maskCtx, maskColor) {
 	maskCtx.putImageData(maskData, 0, 0);
 }
 
-class MaskEditorDialog extends ComfyDialog {
+class MaskEditorDialog extends kaonashiDialog {
 	static instance = null;
 
 	static getInstance() {
@@ -98,8 +98,8 @@ class MaskEditorDialog extends ComfyDialog {
 
 	constructor() {
 		super();
-		this.element = $el("div.comfy-modal", { parent: document.body }, 
-			[ $el("div.comfy-modal-content", 
+		this.element = $el("div.kaonashi-modal", { parent: document.body }, 
+			[ $el("div.kaonashi-modal-content", 
 				[...this.createButtons()]),
 			]);
 	}
@@ -137,7 +137,7 @@ class MaskEditorDialog extends ComfyDialog {
 		divElement.style.fontFamily = "sans-serif";
 		divElement.style.marginRight = "4px";
 		divElement.style.color = "var(--input-text)";
-		divElement.style.backgroundColor = "var(--comfy-input-bg)";
+		divElement.style.backgroundColor = "var(--kaonashi-input-bg)";
 		divElement.style.borderRadius = "8px";
 		divElement.style.borderColor = "var(--border-color)";
 		divElement.style.borderStyle = "solid";
@@ -171,7 +171,7 @@ class MaskEditorDialog extends ComfyDialog {
 		divElement.style.fontFamily = "sans-serif";
 		divElement.style.marginRight = "4px";
 		divElement.style.color = "var(--input-text)";
-		divElement.style.backgroundColor = "var(--comfy-input-bg)";
+		divElement.style.backgroundColor = "var(--kaonashi-input-bg)";
 		divElement.style.borderRadius = "8px";
 		divElement.style.borderColor = "var(--border-color)";
 		divElement.style.borderStyle = "solid";
@@ -328,7 +328,7 @@ class MaskEditorDialog extends ComfyDialog {
 						if(self.last_display_style && self.last_display_style != 'none' && self.element.style.display == 'none') {
 							document.removeEventListener("mouseup", MaskEditorDialog.handleMouseUp);
 							self.brush.style.display = "none";
-							ComfyApp.onClipspaceEditorClosed();
+							kaonashiApp.onClipspaceEditorClosed();
 						}
 
 						self.last_display_style = self.element.style.display;
@@ -343,7 +343,7 @@ class MaskEditorDialog extends ComfyDialog {
 		// The keydown event needs to be reconfigured when closing the dialog as it gets removed.
 		document.addEventListener('keydown', MaskEditorDialog.handleKeyDown);
 
-		if(ComfyApp.clipspace_return_node) {
+		if(kaonashiApp.clipspace_return_node) {
 			this.saveButton.innerText = "Save to node";
 		}
 		else {
@@ -393,16 +393,16 @@ class MaskEditorDialog extends ComfyDialog {
 		maskCtx.clearRect(0,0,this.maskCanvas.width,this.maskCanvas.height);
 
 		// image load
-		const filepath = ComfyApp.clipspace.images;
+		const filepath = kaonashiApp.clipspace.images;
 
-		const alpha_url = new URL(ComfyApp.clipspace.imgs[ComfyApp.clipspace['selectedIndex']].src)
+		const alpha_url = new URL(kaonashiApp.clipspace.imgs[kaonashiApp.clipspace['selectedIndex']].src)
 		alpha_url.searchParams.delete('channel');
 		alpha_url.searchParams.delete('preview');
 		alpha_url.searchParams.set('channel', 'a');
 		let mask_image = await loadImage(alpha_url);
 
 		// original image load
-		const rgb_url = new URL(ComfyApp.clipspace.imgs[ComfyApp.clipspace['selectedIndex']].src);
+		const rgb_url = new URL(kaonashiApp.clipspace.imgs[kaonashiApp.clipspace['selectedIndex']].src);
 		rgb_url.searchParams.delete('channel');
 		rgb_url.searchParams.set('channel', 'rgb');
 		this.image = new Image();
@@ -912,14 +912,14 @@ class MaskEditorDialog extends ComfyDialog {
 				"type": "input",
 			};
 
-		if(ComfyApp.clipspace.images)
-			ComfyApp.clipspace.images[0] = item;
+		if(kaonashiApp.clipspace.images)
+			kaonashiApp.clipspace.images[0] = item;
 
-		if(ComfyApp.clipspace.widgets) {
-			const index = ComfyApp.clipspace.widgets.findIndex(obj => obj.name === 'image');
+		if(kaonashiApp.clipspace.widgets) {
+			const index = kaonashiApp.clipspace.widgets.findIndex(obj => obj.name === 'image');
 
 			if(index >= 0)
-				ComfyApp.clipspace.widgets[index].value = item;
+				kaonashiApp.clipspace.widgets[index].value = item;
 		}
 
 		const dataURL = backupCanvas.toDataURL();
@@ -945,15 +945,15 @@ class MaskEditorDialog extends ComfyDialog {
 		this.saveButton.innerText = "Saving...";
 		this.saveButton.disabled = true;
 		await uploadMask(item, formData);
-		ComfyApp.onClipspaceEditorSave();
+		kaonashiApp.onClipspaceEditorSave();
 		this.close();
 	}
 }
 
 app.registerExtension({
-	name: "Comfy.MaskEditor",
+	name: "kaonashi.MaskEditor",
 	init(app) {
-		ComfyApp.open_maskeditor =
+		kaonashiApp.open_maskeditor =
 			function () {
 				const dlg = MaskEditorDialog.getInstance();
 				if(!dlg.isOpened()) {
@@ -961,7 +961,7 @@ app.registerExtension({
 				}
 			};
 
-		const context_predicate = () => ComfyApp.clipspace && ComfyApp.clipspace.imgs && ComfyApp.clipspace.imgs.length > 0
-		ClipspaceDialog.registerButton("MaskEditor", context_predicate, ComfyApp.open_maskeditor);
+		const context_predicate = () => kaonashiApp.clipspace && kaonashiApp.clipspace.imgs && kaonashiApp.clipspace.imgs.length > 0
+		ClipspaceDialog.registerButton("MaskEditor", context_predicate, kaonashiApp.open_maskeditor);
 	}
 });

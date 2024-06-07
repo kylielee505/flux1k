@@ -1,5 +1,5 @@
 """
-    This file is part of ComfyUI.
+    This file is part of kaonashiUI.
     Copyright (C) 2024 Stability AI
 
     This program is free software: you can redistribute it and/or modify
@@ -18,7 +18,7 @@
 
 import torch
 import torch.nn as nn
-from comfy.ldm.modules.attention import optimized_attention
+from kaonashi.ldm.modules.attention import optimized_attention
 
 class Linear(torch.nn.Linear):
     def reset_parameters(self):

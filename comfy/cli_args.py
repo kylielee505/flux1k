@@ -1,6 +1,6 @@
 import argparse
 import enum
-import comfy.options
+import kaonashi.options
 
 class EnumAction(argparse.Action):
     """
@@ -41,10 +41,10 @@ parser.add_argument("--enable-cors-header", type=str, default=None, metavar="ORI
 parser.add_argument("--max-upload-size", type=float, default=100, help="Set the maximum upload size in MB.")
 
 parser.add_argument("--extra-model-paths-config", type=str, default=None, metavar="PATH", nargs='+', action='append', help="Load one or more extra_model_paths.yaml files.")
-parser.add_argument("--output-directory", type=str, default=None, help="Set the ComfyUI output directory.")
-parser.add_argument("--temp-directory", type=str, default=None, help="Set the ComfyUI temp directory (default is in the ComfyUI directory).")
-parser.add_argument("--input-directory", type=str, default=None, help="Set the ComfyUI input directory.")
-parser.add_argument("--auto-launch", action="store_true", help="Automatically launch ComfyUI in the default browser.")
+parser.add_argument("--output-directory", type=str, default=None, help="Set the kaonashiUI output directory.")
+parser.add_argument("--temp-directory", type=str, default=None, help="Set the kaonashiUI temp directory (default is in the kaonashiUI directory).")
+parser.add_argument("--input-directory", type=str, default=None, help="Set the kaonashiUI input directory.")
+parser.add_argument("--auto-launch", action="store_true", help="Automatically launch kaonashiUI in the default browser.")
 parser.add_argument("--disable-auto-launch", action="store_true", help="Disable auto launching the browser.")
 parser.add_argument("--cuda-device", type=int, default=None, metavar="DEVICE_ID", help="Set the id of the cuda device this instance will use.")
 cm_group = parser.add_mutually_exclusive_group()
@@ -109,7 +109,7 @@ vram_group.add_argument("--novram", action="store_true", help="When lowvram isn'
 vram_group.add_argument("--cpu", action="store_true", help="To use the CPU for everything (slow).")
 
 
-parser.add_argument("--disable-smart-memory", action="store_true", help="Force ComfyUI to agressively offload to regular ram instead of keeping models in vram when it can.")
+parser.add_argument("--disable-smart-memory", action="store_true", help="Force kaonashiUI to agressively offload to regular ram instead of keeping models in vram when it can.")
 parser.add_argument("--deterministic", action="store_true", help="Make pytorch use slower deterministic algorithms when it can. Note that this might not make images deterministic in all cases.")
 
 parser.add_argument("--dont-print-server", action="store_true", help="Don't print server output.")
@@ -123,7 +123,7 @@ parser.add_argument("--multi-user", action="store_true", help="Enables per-user 
 parser.add_argument("--verbose", action="store_true", help="Enables more debug prints.")
 
 
-if comfy.options.args_parsing:
+if kaonashi.options.args_parsing:
     args = parser.parse_args()
 else:
     args = parser.parse_args([])

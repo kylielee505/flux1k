@@ -242,7 +242,7 @@ function createIntWidget(node, inputName, inputData, app, isSeedInput) {
 
 function addMultilineWidget(node, name, opts, app) {
 	const inputEl = document.createElement("textarea");
-	inputEl.className = "comfy-multiline-input";
+	inputEl.className = "kaonashi-multiline-input";
 	inputEl.value = opts.defaultVal;
 	inputEl.placeholder = opts.placeholder || name;
 
@@ -264,7 +264,7 @@ function addMultilineWidget(node, name, opts, app) {
 }
 
 function isSlider(display, app) {
-	if (app.ui.settings.getSettingValue("Comfy.DisableSliders")) {
+	if (app.ui.settings.getSettingValue("kaonashi.DisableSliders")) {
 		return "number"
 	}
 
@@ -273,7 +273,7 @@ function isSlider(display, app) {
 
 export function initWidgets(app) {
 	app.ui.settings.addSetting({
-		id: "Comfy.WidgetControlMode",
+		id: "kaonashi.WidgetControlMode",
 		name: "Widget Value Control Mode",
 		type: "combo",
 		defaultValue: "after",
@@ -299,13 +299,13 @@ export function initWidgets(app) {
 	});
 }
 
-export const ComfyWidgets = {
+export const kaonashiWidgets = {
 	"INT:seed": seedWidget,
 	"INT:noise_seed": seedWidget,
 	FLOAT(node, inputName, inputData, app) {
 		let widgetType = isSlider(inputData[1]["display"], app);
-		let precision = app.ui.settings.getSettingValue("Comfy.FloatRoundingPrecision");
-		let disable_rounding = app.ui.settings.getSettingValue("Comfy.DisableFloatRounding")
+		let precision = app.ui.settings.getSettingValue("kaonashi.FloatRoundingPrecision");
+		let disable_rounding = app.ui.settings.getSettingValue("kaonashi.DisableFloatRounding")
 		if (precision == 0) precision = undefined;
 		const { val, config } = getNumberDefaults(inputData, 0.5, precision, !disable_rounding);
 		return { widget: node.addWidget(widgetType, inputName, val,

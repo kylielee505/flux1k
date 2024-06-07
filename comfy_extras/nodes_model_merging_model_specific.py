@@ -1,6 +1,6 @@
-import comfy_extras.nodes_model_merging
+import kaonashi_extras.nodes_model_merging
 
-class ModelMergeSD1(comfy_extras.nodes_model_merging.ModelMergeBlocks):
+class ModelMergeSD1(kaonashi_extras.nodes_model_merging.ModelMergeBlocks):
     CATEGORY = "advanced/model_merging/model_specific"
     @classmethod
     def INPUT_TYPES(s):
@@ -26,7 +26,7 @@ class ModelMergeSD1(comfy_extras.nodes_model_merging.ModelMergeBlocks):
         return {"required": arg_dict}
 
 
-class ModelMergeSDXL(comfy_extras.nodes_model_merging.ModelMergeBlocks):
+class ModelMergeSDXL(kaonashi_extras.nodes_model_merging.ModelMergeBlocks):
     CATEGORY = "advanced/model_merging/model_specific"
 
     @classmethod

@@ -1,43 +1,43 @@
-ComfyUI
+kaonashiUI
 =======
 The most powerful and modular stable diffusion GUI and backend.
 -----------
-![ComfyUI Screenshot](comfyui_screenshot.png)
+![kaonashiUI Screenshot](kaonashiui_screenshot.png)
 
-This ui will let you design and execute advanced stable diffusion pipelines using a graph/nodes/flowchart based interface. For some workflow examples and see what ComfyUI can do you can check out:
-### [ComfyUI Examples](https://comfyanonymous.github.io/ComfyUI_examples/)
+This ui will let you design and execute advanced stable diffusion pipelines using a graph/nodes/flowchart based interface. For some workflow examples and see what kaonashiUI can do you can check out:
+### [kaonashiUI Examples](https://kaonashianonymous.github.io/kaonashiUI_examples/)
 
-### [Installing ComfyUI](#installing)
+### [Installing kaonashiUI](#installing)
 
 ## Features
 - Nodes/graph/flowchart interface to experiment and create complex Stable Diffusion workflows without needing to code anything.
-- Fully supports SD1.x, SD2.x, [SDXL](https://comfyanonymous.github.io/ComfyUI_examples/sdxl/), [Stable Video Diffusion](https://comfyanonymous.github.io/ComfyUI_examples/video/) and [Stable Cascade](https://comfyanonymous.github.io/ComfyUI_examples/stable_cascade/)
+- Fully supports SD1.x, SD2.x, [SDXL](https://kaonashianonymous.github.io/kaonashiUI_examples/sdxl/), [Stable Video Diffusion](https://kaonashianonymous.github.io/kaonashiUI_examples/video/) and [Stable Cascade](https://kaonashianonymous.github.io/kaonashiUI_examples/stable_cascade/)
 - Asynchronous Queue system
 - Many optimizations: Only re-executes the parts of the workflow that changes between executions.
 - Command line option: ```--lowvram``` to make it work on GPUs with less than 3GB vram (enabled automatically on GPUs with low vram)
 - Works even if you don't have a GPU with: ```--cpu``` (slow)
 - Can load ckpt, safetensors and diffusers models/checkpoints. Standalone VAEs and CLIP models.
 - Embeddings/Textual inversion
-- [Loras (regular, locon and loha)](https://comfyanonymous.github.io/ComfyUI_examples/lora/)
-- [Hypernetworks](https://comfyanonymous.github.io/ComfyUI_examples/hypernetworks/)
+- [Loras (regular, locon and loha)](https://kaonashianonymous.github.io/kaonashiUI_examples/lora/)
+- [Hypernetworks](https://kaonashianonymous.github.io/kaonashiUI_examples/hypernetworks/)
 - Loading full workflows (with seeds) from generated PNG files.
 - Saving/Loading workflows as Json files.
-- Nodes interface can be used to create complex workflows like one for [Hires fix](https://comfyanonymous.github.io/ComfyUI_examples/2_pass_txt2img/) or much more advanced ones.
-- [Area Composition](https://comfyanonymous.github.io/ComfyUI_examples/area_composition/)
-- [Inpainting](https://comfyanonymous.github.io/ComfyUI_examples/inpaint/) with both regular and inpainting models.
-- [ControlNet and T2I-Adapter](https://comfyanonymous.github.io/ComfyUI_examples/controlnet/)
-- [Upscale Models (ESRGAN, ESRGAN variants, SwinIR, Swin2SR, etc...)](https://comfyanonymous.github.io/ComfyUI_examples/upscale_models/)
-- [unCLIP Models](https://comfyanonymous.github.io/ComfyUI_examples/unclip/)
-- [GLIGEN](https://comfyanonymous.github.io/ComfyUI_examples/gligen/)
-- [Model Merging](https://comfyanonymous.github.io/ComfyUI_examples/model_merging/)
-- [LCM models and Loras](https://comfyanonymous.github.io/ComfyUI_examples/lcm/)
-- [SDXL Turbo](https://comfyanonymous.github.io/ComfyUI_examples/sdturbo/)
+- Nodes interface can be used to create complex workflows like one for [Hires fix](https://kaonashianonymous.github.io/kaonashiUI_examples/2_pass_txt2img/) or much more advanced ones.
+- [Area Composition](https://kaonashianonymous.github.io/kaonashiUI_examples/area_composition/)
+- [Inpainting](https://kaonashianonymous.github.io/kaonashiUI_examples/inpaint/) with both regular and inpainting models.
+- [ControlNet and T2I-Adapter](https://kaonashianonymous.github.io/kaonashiUI_examples/controlnet/)
+- [Upscale Models (ESRGAN, ESRGAN variants, SwinIR, Swin2SR, etc...)](https://kaonashianonymous.github.io/kaonashiUI_examples/upscale_models/)
+- [unCLIP Models](https://kaonashianonymous.github.io/kaonashiUI_examples/unclip/)
+- [GLIGEN](https://kaonashianonymous.github.io/kaonashiUI_examples/gligen/)
+- [Model Merging](https://kaonashianonymous.github.io/kaonashiUI_examples/model_merging/)
+- [LCM models and Loras](https://kaonashianonymous.github.io/kaonashiUI_examples/lcm/)
+- [SDXL Turbo](https://kaonashianonymous.github.io/kaonashiUI_examples/sdturbo/)
 - Latent previews with [TAESD](#how-to-show-high-quality-previews)
 - Starts up very fast.
 - Works fully offline: will never download anything.
 - [Config file](extra_model_paths.yaml.example) to set the search paths for models.
 
-Workflow examples can be found on the [Examples page](https://comfyanonymous.github.io/ComfyUI_examples/)
+Workflow examples can be found on the [Examples page](https://kaonashianonymous.github.io/kaonashiUI_examples/)
 
 ## Shortcuts
 
@@ -74,21 +74,21 @@ Ctrl can also be replaced with Cmd instead for macOS users
 
 ## Windows
 
-There is a portable standalone build for Windows that should work for running on Nvidia GPUs or for running on your CPU only on the [releases page](https://github.com/comfyanonymous/ComfyUI/releases).
+There is a portable standalone build for Windows that should work for running on Nvidia GPUs or for running on your CPU only on the [releases page](https://github.com/kaonashianonymous/kaonashiUI/releases).
 
-### [Direct link to download](https://github.com/comfyanonymous/ComfyUI/releases/download/latest/ComfyUI_windows_portable_nvidia_cu121_or_cpu.7z)
+### [Direct link to download](https://github.com/kaonashianonymous/kaonashiUI/releases/download/latest/kaonashiUI_windows_portable_nvidia_cu121_or_cpu.7z)
 
-Simply download, extract with [7-Zip](https://7-zip.org) and run. Make sure you put your Stable Diffusion checkpoints/models (the huge ckpt/safetensors files) in: ComfyUI\models\checkpoints
+Simply download, extract with [7-Zip](https://7-zip.org) and run. Make sure you put your Stable Diffusion checkpoints/models (the huge ckpt/safetensors files) in: kaonashiUI\models\checkpoints
 
 If you have trouble extracting it, right click the file -> properties -> unblock
 
-#### How do I share models between another UI and ComfyUI?
+#### How do I share models between another UI and kaonashiUI?
 
-See the [Config file](extra_model_paths.yaml.example) to set the search paths for models. In the standalone windows build you can find this file in the ComfyUI directory. Rename this file to extra_model_paths.yaml and edit it with your favorite text editor.
+See the [Config file](extra_model_paths.yaml.example) to set the search paths for models. In the standalone windows build you can find this file in the kaonashiUI directory. Rename this file to extra_model_paths.yaml and edit it with your favorite text editor.
 
 ## Jupyter Notebook
 
-To run it on services like paperspace, kaggle or colab you can use my [Jupyter Notebook](notebooks/comfyui_colab.ipynb)
+To run it on services like paperspace, kaggle or colab you can use my [Jupyter Notebook](notebooks/kaonashiui_colab.ipynb)
 
 ## Manual Install (Windows, Linux)
 
@@ -128,11 +128,11 @@ And install it again with the command above.
 
 ### Dependencies
 
-Install the dependencies by opening your terminal inside the ComfyUI folder and:
+Install the dependencies by opening your terminal inside the kaonashiUI folder and:
 
 ```pip install -r requirements.txt```
 
-After this you should have everything installed and can proceed to running ComfyUI.
+After this you should have everything installed and can proceed to running kaonashiUI.
 
 ### Others:
 
@@ -143,28 +143,28 @@ Intel GPU support is available for all Intel GPUs supported by Intel's Extension
 1. Start by installing the drivers or kernel listed or newer in the Installation page of IPEX linked above for Windows and Linux if needed.
 1. Follow the instructions to install [Intel's oneAPI Basekit](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html) for your platform.
 1. Install the packages for IPEX using the instructions provided in the Installation page for your platform.
-1. Follow the [ComfyUI manual installation](#manual-install-windows-linux) instructions for Windows and Linux and run ComfyUI normally as described above after everything is installed.
+1. Follow the [kaonashiUI manual installation](#manual-install-windows-linux) instructions for Windows and Linux and run kaonashiUI normally as described above after everything is installed.
 
-Additional discussion and help can be found [here](https://github.com/comfyanonymous/ComfyUI/discussions/476).
+Additional discussion and help can be found [here](https://github.com/kaonashianonymous/kaonashiUI/discussions/476).
 
 #### Apple Mac silicon
 
-You can install ComfyUI in Apple Mac silicon (M1 or M2) with any recent macOS version.
+You can install kaonashiUI in Apple Mac silicon (M1 or M2) with any recent macOS version.
 
 1. Install pytorch nightly. For instructions, read the [Accelerated PyTorch training on Mac](https://developer.apple.com/metal/pytorch/) Apple Developer guide (make sure to install the latest pytorch nightly).
-1. Follow the [ComfyUI manual installation](#manual-install-windows-linux) instructions for Windows and Linux.
-1. Install the ComfyUI [dependencies](#dependencies). If you have another Stable Diffusion UI [you might be able to reuse the dependencies](#i-already-have-another-ui-for-stable-diffusion-installed-do-i-really-have-to-install-all-of-these-dependencies).
-1. Launch ComfyUI by running `python main.py`
+1. Follow the [kaonashiUI manual installation](#manual-install-windows-linux) instructions for Windows and Linux.
+1. Install the kaonashiUI [dependencies](#dependencies). If you have another Stable Diffusion UI [you might be able to reuse the dependencies](#i-already-have-another-ui-for-stable-diffusion-installed-do-i-really-have-to-install-all-of-these-dependencies).
+1. Launch kaonashiUI by running `python main.py`
 
-> **Note**: Remember to add your models, VAE, LoRAs etc. to the corresponding Comfy folders, as discussed in [ComfyUI manual installation](#manual-install-windows-linux).
+> **Note**: Remember to add your models, VAE, LoRAs etc. to the corresponding kaonashi folders, as discussed in [kaonashiUI manual installation](#manual-install-windows-linux).
 
 #### DirectML (AMD Cards on Windows)
 
-```pip install torch-directml``` Then you can launch ComfyUI with: ```python main.py --directml```
+```pip install torch-directml``` Then you can launch kaonashiUI with: ```python main.py --directml```
 
 ### I already have another UI for Stable Diffusion installed do I really have to install all of these dependencies?
 
-You don't. If you have another UI installed and working with its own python venv you can use that venv to run ComfyUI. You can open up your favorite terminal and activate it:
+You don't. If you have another UI installed and working with its own python venv you can use that venv to run kaonashiUI. You can open up your favorite terminal and activate it:
 
 ```source path_to_other_sd_gui/venv/bin/activate```
 
@@ -174,7 +174,7 @@ With Powershell: ```"path_to_other_sd_gui\venv\Scripts\Activate.ps1"```
 
 With cmd.exe: ```"path_to_other_sd_gui\venv\Scripts\activate.bat"```
 
-And then you can use that terminal to run ComfyUI without installing any dependencies. Note that the venv folder might be called something else depending on the SD UI.
+And then you can use that terminal to run kaonashiUI without installing any dependencies. Note that the venv folder might be called something else depending on the SD UI.
 
 # Running
 
@@ -211,7 +211,7 @@ To use a textual inversion concepts/embeddings in a text prompt put them in the 
 
 Use ```--preview-method auto``` to enable previews.
 
-The default installation includes a fast latent preview method that's low-resolution. To enable higher-quality previews with [TAESD](https://github.com/madebyollin/taesd), download the [taesd_decoder.pth](https://github.com/madebyollin/taesd/raw/main/taesd_decoder.pth) (for SD1.x and SD2.x) and [taesdxl_decoder.pth](https://github.com/madebyollin/taesd/raw/main/taesdxl_decoder.pth) (for SDXL) models and place them in the `models/vae_approx` folder. Once they're installed, restart ComfyUI to enable high-quality previews.
+The default installation includes a fast latent preview method that's low-resolution. To enable higher-quality previews with [TAESD](https://github.com/madebyollin/taesd), download the [taesd_decoder.pth](https://github.com/madebyollin/taesd/raw/main/taesd_decoder.pth) (for SD1.x and SD2.x) and [taesdxl_decoder.pth](https://github.com/madebyollin/taesd/raw/main/taesdxl_decoder.pth) (for SDXL) models and place them in the `models/vae_approx` folder. Once they're installed, restart kaonashiUI to enable high-quality previews.
 
 ## How to use TLS/SSL?
 Generate a self-signed certificate (not appropriate for shared/production use) and key by running the command: `openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 3650 -nodes -subj "/C=XX/ST=StateName/L=CityName/O=CompanyName/OU=CompanySectionName/CN=CommonNameOrHostname"`
@@ -223,7 +223,7 @@ Use `--tls-keyfile key.pem --tls-certfile cert.pem` to enable TLS/SSL, the app w
 
 ## Support and dev channel
 
-[Matrix space: #comfyui_space:matrix.org](https://app.element.io/#/room/%23comfyui_space%3Amatrix.org) (it's like discord but open source).
+[Matrix space: #kaonashiui_space:matrix.org](https://app.element.io/#/room/%23kaonashiui_space%3Amatrix.org) (it's like discord but open source).
 
 # QA
 
